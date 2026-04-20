@@ -1,0 +1,147 @@
+"""
+src/plotting.py
+================================================================================
+Matplotlib renderings for cross-sections and water-surface profiles.
+
+The GUI embeds these figures in Tk canvases (see src/gui.py), but every
+function here is also usable standalone:
+
+    fig = cross_section_figure(xs, wse=100.5)
+    fig.savefig("xs.png")
+
+HIGHLIGHTED TWEAK AREAS
+--------------------------------------------------------------------------------
+  ### TWEAK: STYLE ###        Colors, line widths, fill alphas.
+  ### TWEAK: FIG_SIZE ###     Default figure sizes.
+================================================================================
+"""
+
+from __future__ import annotations
+
+from typing import List, Optional
+
+import matplotlib
+# Use a non-interactive backend by default; the Tk GUI will flip it to TkAgg.
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+from .geometry import CrossSection
+from .solver import ProfileResult
+
+
+# =============================================================================
+# ### TWEAK: STYLE ###
+# =============================================================================
+GROUND_COLOR   = "#7a5230"   # earthy brown
+WATER_COLOR    = "#2a72c1"   # river blue
+ENERGY_COLOR   = "#d24a2a"   # red for EGL
+CRITICAL_COLOR = "#b8b800"   # dashed yellow for critical line
+FILL_ALPHA     = 0.35
+LINE_WIDTH     = 1.8
+
+# ### TWEAK: FIG_SIZE ###
+XS_FIGSIZE      = (6.5, 3.8)
+PROFILE_FIGSIZE = (7.5, 4.0)
+
+
+def cross_section_figure(xs: CrossSection,
+                         wse: Optional[float] = None,
+                         ax=None):
+    """Draw one cross-section with optional water surface."""
+    import matplotlib.pyplot as _plt
+    if ax is None:
+        fig, ax = _plt.subplots(figsize=XS_FIGSIZE)
+    else:
+        fig = ax.figure
+
+    ax.plot(xs.stations, xs.elevations,
+            color=GROUND_COLOR, linewidth=LINE_WIDTH, label="Ground")
+    # Shade the ground below to make the "floor" obvious.
+    bottom = min(xs.elevations) - 1.0
+    ax.fill_between(xs.stations, xs.elevations, bottom,
+                    color=GROUND_COLOR, alpha=0.2)
+
+    if wse is not None and wse > min(xs.elevations):
+        ax.axhline(wse, color=WATER_COLOR, linewidth=1.5,
+                   linestyle="--", label=f"WSE = {wse:.2f}")
+        # Shade the water body: between ground and WSE where ground < WSE.
+        ys_water_top = [min(wse, z) for z in xs.elevations]  # unused but keeps intent
+        ax.fill_between(xs.stations, xs.elevations,
+                        [wse] * len(xs.stations),
+                        where=[z < wse for z in xs.elevations],
+                        color=WATER_COLOR, alpha=FILL_ALPHA, interpolate=True)
+
+    if xs.left_bank is not None:
+        ax.axvline(xs.left_bank, color="k", linestyle=":", linewidth=0.8)
+    if xs.right_bank is not None:
+        ax.axvline(xs.right_bank, color="k", linestyle=":", linewidth=0.8)
+
+    ax.set_xlabel("Station")
+    ax.set_ylabel("Elevation")
+    ax.set_title(f"Cross-section: {xs.name}  (RS {xs.river_station:.1f})")
+    ax.grid(True, linestyle=":", alpha=0.5)
+    ax.legend(loc="best", fontsize=8)
+    return fig
+
+
+def profile_figure(result: ProfileResult,
+                   reach_cross_sections: List[CrossSection],
+                   ax=None):
+    """
+    Plot the water-surface profile along a reach:
+      * thalweg elevation vs river station
+      * computed WSE vs river station
+      * energy grade line (EGL)
+      * critical WSE (dashed)
+    """
+    import matplotlib.pyplot as _plt
+    if ax is None:
+        fig, ax = _plt.subplots(figsize=PROFILE_FIGSIZE)
+    else:
+        fig = ax.figure
+
+    # Ensure alignment between geometry and results by name lookup.
+    by_name = {xs.name: xs for xs in reach_cross_sections}
+    xs_list = [s for s in result.sections if s.name in by_name]
+    xs_list.sort(key=lambda s: s.station)
+
+    stations = [s.station for s in xs_list]
+    thalweg  = [by_name[s.name].min_elevation for s in xs_list]
+    wse      = [s.wse for s in xs_list]
+    egl      = [s.energy_grade for s in xs_list]
+    crit     = [s.critical_wse for s in xs_list]
+
+    ax.plot(stations, thalweg, color=GROUND_COLOR, linewidth=LINE_WIDTH,
+            marker="o", label="Thalweg (bed)")
+    ax.plot(stations, wse, color=WATER_COLOR, linewidth=LINE_WIDTH,
+            marker="s", label="Water surface")
+    ax.plot(stations, egl, color=ENERGY_COLOR, linewidth=1.2,
+            linestyle="-", marker="^", label="Energy grade line")
+    ax.plot(stations, crit, color=CRITICAL_COLOR, linewidth=1.0,
+            linestyle="--", label="Critical WSE")
+
+    ax.fill_between(stations, thalweg, wse, color=WATER_COLOR, alpha=FILL_ALPHA)
+
+    ax.set_xlabel("River station (upstream →)")
+    ax.set_ylabel("Elevation")
+    ax.set_title(f"Profile: {result.reach_name}   Q = {result.discharge:g}")
+    ax.grid(True, linestyle=":", alpha=0.5)
+    ax.legend(loc="best", fontsize=8)
+    return fig
+
+
+def rating_figure(points, xs_name: str, ax=None):
+    """Discharge vs WSE plot at a single section."""
+    import matplotlib.pyplot as _plt
+    if ax is None:
+        fig, ax = _plt.subplots(figsize=XS_FIGSIZE)
+    else:
+        fig = ax.figure
+    qs = [p.discharge for p in points]
+    ws = [p.wse for p in points]
+    ax.plot(qs, ws, "o-", color=WATER_COLOR, linewidth=LINE_WIDTH)
+    ax.set_xlabel("Discharge")
+    ax.set_ylabel("Water-surface elevation")
+    ax.set_title(f"Rating curve at {xs_name}")
+    ax.grid(True, linestyle=":", alpha=0.5)
+    return fig

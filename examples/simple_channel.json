@@ -1,0 +1,76 @@
+{
+  "file_version": 1,
+  "name": "Simple Trapezoidal Channel",
+  "description": "A five-station, mild-slope trapezoidal channel for first-run smoke tests.",
+  "unit_system": "SI",
+  "reaches": [
+    {
+      "name": "Main Reach",
+      "cross_sections": [
+        {
+          "name": "XS-1", "river_station": 0.0,
+          "stations": [-15.0, -6.0, 0.0, 10.0, 16.0, 25.0],
+          "elevations": [3.5, 3.0, 0.0, 0.0, 3.0, 3.5],
+          "left_bank": -6.0, "right_bank": 16.0,
+          "n_channel": 0.035, "n_left": 0.045, "n_right": 0.045,
+          "reach_length_channel": 100.0,
+          "reach_length_lob": 100.0,
+          "reach_length_rob": 100.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        },
+        {
+          "name": "XS-2", "river_station": 100.0,
+          "stations": [-15.0, -6.0, 0.0, 10.0, 16.0, 25.0],
+          "elevations": [3.6, 3.1, 0.1, 0.1, 3.1, 3.6],
+          "left_bank": -6.0, "right_bank": 16.0,
+          "n_channel": 0.035, "n_left": 0.045, "n_right": 0.045,
+          "reach_length_channel": 100.0,
+          "reach_length_lob": 100.0,
+          "reach_length_rob": 100.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        },
+        {
+          "name": "XS-3", "river_station": 200.0,
+          "stations": [-15.0, -6.0, 0.0, 10.0, 16.0, 25.0],
+          "elevations": [3.7, 3.2, 0.2, 0.2, 3.2, 3.7],
+          "left_bank": -6.0, "right_bank": 16.0,
+          "n_channel": 0.035, "n_left": 0.045, "n_right": 0.045,
+          "reach_length_channel": 100.0,
+          "reach_length_lob": 100.0,
+          "reach_length_rob": 100.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        },
+        {
+          "name": "XS-4", "river_station": 300.0,
+          "stations": [-15.0, -6.0, 0.0, 10.0, 16.0, 25.0],
+          "elevations": [3.8, 3.3, 0.3, 0.3, 3.3, 3.8],
+          "left_bank": -6.0, "right_bank": 16.0,
+          "n_channel": 0.035, "n_left": 0.045, "n_right": 0.045,
+          "reach_length_channel": 100.0,
+          "reach_length_lob": 100.0,
+          "reach_length_rob": 100.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        },
+        {
+          "name": "XS-5", "river_station": 400.0,
+          "stations": [-15.0, -6.0, 0.0, 10.0, 16.0, 25.0],
+          "elevations": [3.9, 3.4, 0.4, 0.4, 3.4, 3.9],
+          "left_bank": -6.0, "right_bank": 16.0,
+          "n_channel": 0.035, "n_left": 0.045, "n_right": 0.045,
+          "reach_length_channel": 100.0,
+          "reach_length_lob": 100.0,
+          "reach_length_rob": 100.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "Design flow 20 cms",
+      "discharge": 20.0,
+      "boundary_wse": 1.15,
+      "regime": "subcritical"
+    }
+  ]
+}

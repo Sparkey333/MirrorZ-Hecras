@@ -1,0 +1,18 @@
+# ============================================================================
+# requirements.txt - Python dependencies for MirrorZ-Hecras
+# ============================================================================
+# NOTE: This project intentionally keeps dependencies small so it's easy to
+# install and easy to read. Everything heavy (numerics, plotting) uses the
+# established scientific-Python stack so you can trust the math.
+# ============================================================================
+
+# numpy: vector/array math. Used for cross-section geometry and solver state.
+numpy>=1.22
+
+# scipy: root-finders (brentq) used for critical depth and normal depth.
+# NOTE: If you prefer zero external deps, src/hydraulics.py includes a
+# pure-python bisection fallback. See the "### TWEAK: ROOT_FINDER ###" marker.
+scipy>=1.8
+
+# matplotlib: cross-section and profile plots (embedded in the Tk GUI).
+matplotlib>=3.5

@@ -1,0 +1,530 @@
+"""
+src/gui.py
+================================================================================
+Tkinter desktop GUI for MirrorZ-Hecras.
+
+LAYOUT
+--------------------------------------------------------------------------------
+Menu bar: File / Run / Tools / Help
+Left pane: project tree (reaches -> cross-sections, flow plans)
+Right tabs:
+    1. Cross-Section   - edit stations/elevations, live preview plot
+    2. Profile         - run the solver and see water surface plot
+    3. Summary         - CSV-style text output of last run
+    4. Companion       - guided wizard + glossary
+
+HIGHLIGHTED TWEAK AREAS
+--------------------------------------------------------------------------------
+  ### TWEAK: WINDOW ###     Window size, title.
+  ### TWEAK: COLORS ###     Theme bits (mostly delegated to matplotlib).
+
+This file is intentionally longer than the others because GUI code is
+inherently wordy. Keep an eye on the big section banners (====...====) for
+navigation.
+================================================================================
+"""
+
+from __future__ import annotations
+
+import os
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox, simpledialog
+from typing import List, Optional
+
+# Matplotlib embedding. We force TkAgg here so the plotting module picks it up.
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+
+from .project import Project, FlowPlan, default_project
+from .geometry import CrossSection, Reach
+from .solver import solve_profile, ProfileResult
+from . import plotting as pl
+from . import companion as helper
+from . import analyzer
+from . import hydraulics as hy
+
+
+# ### TWEAK: WINDOW ###
+WINDOW_TITLE   = "MirrorZ-Hecras — open-channel hydraulics, for learning"
+WINDOW_SIZE    = "1180x740"
+
+
+class App(tk.Tk):
+    """Main application window."""
+
+    # =========================================================================
+    # Construction
+    # =========================================================================
+    def __init__(self) -> None:
+        super().__init__()
+        self.title(WINDOW_TITLE)
+        self.geometry(WINDOW_SIZE)
+
+        self.project: Project = default_project()
+        self.project.apply_units()
+        self.last_result: Optional[ProfileResult] = None
+        self.selected_xs_index: int = 0
+
+        self._build_menu()
+        self._build_body()
+        self._refresh_tree()
+        self._show_welcome()
+
+    # =========================================================================
+    # Menu bar
+    # =========================================================================
+    def _build_menu(self) -> None:
+        menubar = tk.Menu(self)
+
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="New Project",       command=self.new_project)
+        file_menu.add_command(label="Open…",             command=self.open_project)
+        file_menu.add_command(label="Save As…",          command=self.save_project)
+        file_menu.add_separator()
+        file_menu.add_command(label="Quit",              command=self.destroy)
+        menubar.add_cascade(label="File", menu=file_menu)
+
+        run_menu = tk.Menu(menubar, tearoff=0)
+        run_menu.add_command(label="Compute Profile",    command=self.run_profile)
+        run_menu.add_command(label="Rating Curve…",      command=self.run_rating)
+        run_menu.add_command(label="Freeboard Check",    command=self.run_freeboard)
+        menubar.add_cascade(label="Run", menu=run_menu)
+
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        tools_menu.add_command(label="Inspect Project",  command=self.run_inspect)
+        tools_menu.add_command(label="Units: Toggle SI / US", command=self.toggle_units)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="Companion: Welcome",    command=self._show_welcome)
+        help_menu.add_command(label="Explain Manning",       command=lambda: self._explain("manning"))
+        help_menu.add_command(label="Explain Froude",        command=lambda: self._explain("froude"))
+        help_menu.add_command(label="Explain Critical Depth",command=lambda: self._explain("critical_depth"))
+        help_menu.add_command(label="Explain Standard Step", command=lambda: self._explain("standard_step"))
+        menubar.add_cascade(label="Help", menu=help_menu)
+
+        self.config(menu=menubar)
+
+    # =========================================================================
+    # Main body: sidebar + tabbed notebook
+    # =========================================================================
+    def _build_body(self) -> None:
+        root = ttk.Panedwindow(self, orient=tk.HORIZONTAL)
+        root.pack(fill=tk.BOTH, expand=True)
+
+        # ---- Sidebar ------------------------------------------------------
+        left = ttk.Frame(root, width=280)
+        self.tree = ttk.Treeview(left)
+        self.tree.heading("#0", text="Project")
+        self.tree.pack(fill=tk.BOTH, expand=True)
+        self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
+
+        side_btns = ttk.Frame(left)
+        ttk.Button(side_btns, text="Add XS",    command=self.add_xs).pack(side=tk.LEFT)
+        ttk.Button(side_btns, text="Del XS",    command=self.del_xs).pack(side=tk.LEFT)
+        ttk.Button(side_btns, text="Add Flow",  command=self.add_flow).pack(side=tk.LEFT)
+        side_btns.pack(fill=tk.X)
+        root.add(left, weight=1)
+
+        # ---- Notebook -----------------------------------------------------
+        nb = ttk.Notebook(root)
+        self.tab_xs       = ttk.Frame(nb); nb.add(self.tab_xs,      text="Cross-Section")
+        self.tab_profile  = ttk.Frame(nb); nb.add(self.tab_profile, text="Profile")
+        self.tab_summary  = ttk.Frame(nb); nb.add(self.tab_summary, text="Summary")
+        self.tab_helper   = ttk.Frame(nb); nb.add(self.tab_helper,  text="Companion")
+        root.add(nb, weight=4)
+        self.nb = nb
+
+        self._build_xs_tab()
+        self._build_profile_tab()
+        self._build_summary_tab()
+        self._build_helper_tab()
+
+    # ---------------- Cross-section tab ---------------------------------------
+    def _build_xs_tab(self) -> None:
+        top = ttk.Frame(self.tab_xs)
+        top.pack(side=tk.TOP, fill=tk.X)
+        ttk.Label(top, text="Name:").grid(row=0, column=0, sticky="w")
+        self.xs_name_var = tk.StringVar()
+        ttk.Entry(top, textvariable=self.xs_name_var, width=18)\
+            .grid(row=0, column=1, sticky="w")
+        ttk.Label(top, text="River Station:").grid(row=0, column=2, sticky="w", padx=(10,0))
+        self.xs_rs_var = tk.DoubleVar()
+        ttk.Entry(top, textvariable=self.xs_rs_var, width=8)\
+            .grid(row=0, column=3, sticky="w")
+        ttk.Label(top, text="n channel:").grid(row=0, column=4, sticky="w", padx=(10,0))
+        self.xs_n_var = tk.DoubleVar()
+        ttk.Entry(top, textvariable=self.xs_n_var, width=7)\
+            .grid(row=0, column=5, sticky="w")
+        ttk.Button(top, text="Apply Header", command=self._apply_xs_header)\
+            .grid(row=0, column=6, padx=8)
+
+        # Table of points.
+        mid = ttk.Frame(self.tab_xs)
+        mid.pack(side=tk.TOP, fill=tk.BOTH, expand=False)
+        self.point_tree = ttk.Treeview(mid, columns=("station","elev"), show="headings", height=8)
+        self.point_tree.heading("station", text="Station")
+        self.point_tree.heading("elev",    text="Elevation")
+        self.point_tree.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        btn = ttk.Frame(mid)
+        ttk.Button(btn, text="Add Pt",    command=self._pt_add).pack(fill=tk.X)
+        ttk.Button(btn, text="Edit Pt",   command=self._pt_edit).pack(fill=tk.X)
+        ttk.Button(btn, text="Remove Pt", command=self._pt_remove).pack(fill=tk.X)
+        ttk.Button(btn, text="Refresh",   command=self._refresh_xs_plot).pack(fill=tk.X, pady=(6,0))
+        btn.pack(side=tk.LEFT, fill=tk.Y, padx=6)
+
+        # Plot.
+        self.xs_fig = Figure(figsize=pl.XS_FIGSIZE)
+        self.xs_ax  = self.xs_fig.add_subplot(111)
+        self.xs_canvas = FigureCanvasTkAgg(self.xs_fig, master=self.tab_xs)
+        self.xs_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    # ---------------- Profile tab ---------------------------------------------
+    def _build_profile_tab(self) -> None:
+        top = ttk.Frame(self.tab_profile)
+        top.pack(side=tk.TOP, fill=tk.X)
+        ttk.Label(top, text="Flow:").grid(row=0, column=0, sticky="w")
+        self.flow_combo = ttk.Combobox(top, state="readonly", width=28)
+        self.flow_combo.grid(row=0, column=1, sticky="w")
+        ttk.Button(top, text="Run", command=self.run_profile).grid(row=0, column=2, padx=8)
+        self.profile_status = tk.StringVar(value="(not run)")
+        ttk.Label(top, textvariable=self.profile_status).grid(row=0, column=3, sticky="w")
+
+        self.prof_fig = Figure(figsize=pl.PROFILE_FIGSIZE)
+        self.prof_ax  = self.prof_fig.add_subplot(111)
+        self.prof_canvas = FigureCanvasTkAgg(self.prof_fig, master=self.tab_profile)
+        self.prof_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    # ---------------- Summary tab ---------------------------------------------
+    def _build_summary_tab(self) -> None:
+        self.summary_text = tk.Text(self.tab_summary, wrap=tk.NONE, font=("Courier", 10))
+        sb = ttk.Scrollbar(self.tab_summary, orient=tk.VERTICAL, command=self.summary_text.yview)
+        self.summary_text.configure(yscrollcommand=sb.set)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.summary_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    # ---------------- Companion tab -------------------------------------------
+    def _build_helper_tab(self) -> None:
+        self.helper_text = tk.Text(self.tab_helper, wrap=tk.WORD, font=("Helvetica", 11))
+        self.helper_text.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        btn = ttk.Frame(self.tab_helper)
+        for topic in ("manning", "froude", "critical_depth",
+                      "normal_depth", "standard_step", "contraction_expansion"):
+            ttk.Button(btn, text=topic, command=lambda t=topic: self._explain(t))\
+                .pack(side=tk.LEFT, padx=2)
+        btn.pack(side=tk.BOTTOM, fill=tk.X)
+
+    # =========================================================================
+    # Project tree handling
+    # =========================================================================
+    def _refresh_tree(self) -> None:
+        self.tree.delete(*self.tree.get_children())
+        root = self.tree.insert("", tk.END, text=self.project.name, open=True,
+                                values=("project",))
+        for ri, reach in enumerate(self.project.reaches):
+            rnode = self.tree.insert(root, tk.END, text=f"Reach: {reach.name}",
+                                     open=True, values=(f"reach:{ri}",))
+            for xi, xs in enumerate(reach.cross_sections):
+                self.tree.insert(rnode, tk.END,
+                    text=f"{xs.name}  (RS {xs.river_station:.1f})",
+                    values=(f"xs:{ri}:{xi}",))
+        fnode = self.tree.insert(root, tk.END, text="Flows", open=True, values=("flows",))
+        for fi, fp in enumerate(self.project.flows):
+            self.tree.insert(fnode, tk.END, text=f"{fp.name} (Q={fp.discharge})",
+                             values=(f"flow:{fi}",))
+        # refresh flow combo too
+        self.flow_combo["values"] = [f.name for f in self.project.flows]
+        if self.project.flows and not self.flow_combo.get():
+            self.flow_combo.current(0)
+
+    def _on_tree_select(self, _event=None) -> None:
+        sel = self.tree.selection()
+        if not sel:
+            return
+        vals = self.tree.item(sel[0]).get("values") or []
+        if not vals:
+            return
+        tag = str(vals[0])
+        if tag.startswith("xs:"):
+            _, ri, xi = tag.split(":")
+            self._load_xs(int(ri), int(xi))
+            self.nb.select(self.tab_xs)
+
+    # =========================================================================
+    # Cross-section editing
+    # =========================================================================
+    def _load_xs(self, reach_idx: int, xs_idx: int) -> None:
+        reach = self.project.reaches[reach_idx]
+        xs = reach.cross_sections[xs_idx]
+        self.selected_xs = (reach_idx, xs_idx)
+        self.xs_name_var.set(xs.name)
+        self.xs_rs_var.set(xs.river_station)
+        self.xs_n_var.set(xs.n_channel)
+        self._reload_points()
+        self._refresh_xs_plot()
+
+    def _reload_points(self) -> None:
+        self.point_tree.delete(*self.point_tree.get_children())
+        if not hasattr(self, "selected_xs"):
+            return
+        ri, xi = self.selected_xs
+        xs = self.project.reaches[ri].cross_sections[xi]
+        for i, (s, z) in enumerate(zip(xs.stations, xs.elevations)):
+            self.point_tree.insert("", tk.END, iid=str(i),
+                                   values=(f"{s:.3f}", f"{z:.3f}"))
+
+    def _apply_xs_header(self) -> None:
+        if not hasattr(self, "selected_xs"):
+            return
+        ri, xi = self.selected_xs
+        xs = self.project.reaches[ri].cross_sections[xi]
+        xs.name = self.xs_name_var.get() or xs.name
+        xs.river_station = float(self.xs_rs_var.get())
+        xs.n_channel = float(self.xs_n_var.get())
+        self.project.reaches[ri].sort_upstream()
+        self._refresh_tree()
+        self._refresh_xs_plot()
+
+    def _pt_add(self) -> None:
+        s = simpledialog.askfloat("New point", "Station:", parent=self)
+        if s is None: return
+        z = simpledialog.askfloat("New point", "Elevation:", parent=self)
+        if z is None: return
+        ri, xi = self.selected_xs
+        xs = self.project.reaches[ri].cross_sections[xi]
+        xs.stations.append(s); xs.elevations.append(z)
+        # Re-sort.
+        pts = sorted(zip(xs.stations, xs.elevations))
+        xs.stations  = [p[0] for p in pts]
+        xs.elevations= [p[1] for p in pts]
+        self._reload_points(); self._refresh_xs_plot()
+
+    def _pt_edit(self) -> None:
+        sel = self.point_tree.selection()
+        if not sel: return
+        ri, xi = self.selected_xs
+        xs = self.project.reaches[ri].cross_sections[xi]
+        i = int(sel[0])
+        s = simpledialog.askfloat("Edit point", "Station:",
+                                   initialvalue=xs.stations[i], parent=self)
+        if s is None: return
+        z = simpledialog.askfloat("Edit point", "Elevation:",
+                                   initialvalue=xs.elevations[i], parent=self)
+        if z is None: return
+        xs.stations[i] = s; xs.elevations[i] = z
+        pts = sorted(zip(xs.stations, xs.elevations))
+        xs.stations  = [p[0] for p in pts]
+        xs.elevations= [p[1] for p in pts]
+        self._reload_points(); self._refresh_xs_plot()
+
+    def _pt_remove(self) -> None:
+        sel = self.point_tree.selection()
+        if not sel: return
+        ri, xi = self.selected_xs
+        xs = self.project.reaches[ri].cross_sections[xi]
+        i = int(sel[0])
+        if len(xs.stations) <= 3:
+            messagebox.showwarning("Cannot remove",
+                "A cross-section needs at least 3 points.")
+            return
+        xs.stations.pop(i); xs.elevations.pop(i)
+        self._reload_points(); self._refresh_xs_plot()
+
+    def _refresh_xs_plot(self) -> None:
+        if not hasattr(self, "selected_xs"):
+            return
+        ri, xi = self.selected_xs
+        xs = self.project.reaches[ri].cross_sections[xi]
+        self.xs_ax.clear()
+        # Show WSE from the most-recent run if the section is in it.
+        wse = None
+        if self.last_result is not None:
+            for s in self.last_result.sections:
+                if s.name == xs.name:
+                    wse = s.wse; break
+        pl.cross_section_figure(xs, wse=wse, ax=self.xs_ax)
+        self.xs_canvas.draw()
+
+    # =========================================================================
+    # Side buttons
+    # =========================================================================
+    def add_xs(self) -> None:
+        if not self.project.reaches:
+            self.project.add_reach(Reach("Main Reach"))
+        reach = self.project.reaches[0]
+        base = reach.cross_sections[-1] if reach.cross_sections else None
+        name = simpledialog.askstring("New XS", "Name:", parent=self) or f"XS-{len(reach)+1}"
+        rs = simpledialog.askfloat("New XS", "River station:",
+                initialvalue=(base.river_station + 100.0) if base else 0.0,
+                parent=self)
+        if rs is None: return
+        # Reasonable default shape: copy the last one, or a flat trapezoid.
+        if base is not None:
+            xs = CrossSection(
+                name=name, river_station=rs,
+                stations=list(base.stations), elevations=list(base.elevations),
+                left_bank=base.left_bank, right_bank=base.right_bank,
+                n_channel=base.n_channel, n_left=base.n_left, n_right=base.n_right,
+                reach_length_channel=base.reach_length_channel,
+            )
+        else:
+            xs = CrossSection(name=name, river_station=rs,
+                              stations=[0, 5, 15, 20], elevations=[3, 0, 0, 3])
+        reach.add(xs)
+        self._refresh_tree()
+
+    def del_xs(self) -> None:
+        if not hasattr(self, "selected_xs"):
+            return
+        ri, xi = self.selected_xs
+        if messagebox.askyesno("Delete XS", "Remove the selected cross-section?"):
+            self.project.reaches[ri].cross_sections.pop(xi)
+            self._refresh_tree()
+
+    def add_flow(self) -> None:
+        name = simpledialog.askstring("New flow", "Plan name:", parent=self)
+        if not name: return
+        q = simpledialog.askfloat("New flow", "Discharge:",
+                                   initialvalue=20.0, parent=self)
+        if q is None: return
+        regime = simpledialog.askstring("New flow",
+            "Regime (subcritical / supercritical):",
+            initialvalue="subcritical", parent=self) or "subcritical"
+        wse = helper.recommend_boundary(self.project, q, regime)
+        self.project.add_flow(FlowPlan(name=name, discharge=q,
+                                       boundary_wse=wse, regime=regime))
+        self._refresh_tree()
+
+    # =========================================================================
+    # Menu actions
+    # =========================================================================
+    def new_project(self) -> None:
+        if not messagebox.askyesno("New project",
+                "Discard current project and start a new default one?"):
+            return
+        self.project = default_project()
+        self.project.apply_units()
+        self.last_result = None
+        self._refresh_tree()
+
+    def open_project(self) -> None:
+        path = filedialog.askopenfilename(filetypes=[("JSON","*.json"), ("All","*.*")])
+        if not path: return
+        try:
+            self.project = Project.load(path)
+            self.project.apply_units()
+        except Exception as e:
+            messagebox.showerror("Open failed", str(e)); return
+        self.last_result = None
+        self._refresh_tree()
+
+    def save_project(self) -> None:
+        path = filedialog.asksaveasfilename(defaultextension=".json",
+                filetypes=[("JSON","*.json")])
+        if not path: return
+        try:
+            self.project.save(path)
+            messagebox.showinfo("Saved", f"Project saved to\n{path}")
+        except Exception as e:
+            messagebox.showerror("Save failed", str(e))
+
+    def run_profile(self) -> None:
+        if not self.project.flows:
+            messagebox.showwarning("No flow", "Define a flow plan first (side panel → Add Flow)."); return
+        fi = max(self.flow_combo.current(), 0)
+        flow = self.project.flows[fi]
+        reach = self.project.reaches[0]
+        try:
+            result = solve_profile(reach, flow.discharge, flow.boundary_wse,
+                                   regime=flow.regime)
+        except Exception as e:
+            messagebox.showerror("Solver error", str(e)); return
+        self.last_result = result
+        # Redraw
+        self.prof_ax.clear()
+        pl.profile_figure(result, reach.cross_sections, ax=self.prof_ax)
+        self.prof_canvas.draw()
+        self._refresh_xs_plot()
+        self.profile_status.set(
+            f"{len(result.sections)} sections, "
+            f"{sum(1 for s in result.sections if s.converged)} converged."
+        )
+        self.summary_text.delete("1.0", tk.END)
+        self.summary_text.insert(tk.END, analyzer.summarize(result) + "\n")
+        if result.messages:
+            self.summary_text.insert(tk.END, "\n-- solver messages --\n")
+            for m in result.messages:
+                self.summary_text.insert(tk.END, f"  * {m}\n")
+        hints = helper.next_steps(result)
+        self.summary_text.insert(tk.END, "\n-- companion --\n")
+        for h in hints:
+            self.summary_text.insert(tk.END, f"  [{h.level}] {h.message}\n")
+
+    def run_rating(self) -> None:
+        if not self.project.reaches or not self.project.flows:
+            messagebox.showwarning("Need a project",
+                "Add at least one reach and one flow plan first."); return
+        q_min = simpledialog.askfloat("Rating", "Min Q:",  initialvalue=1.0, parent=self) or 1.0
+        q_max = simpledialog.askfloat("Rating", "Max Q:",  initialvalue=50.0, parent=self) or 50.0
+        points = analyzer.rating_curve(self.project, reach_index=0, xs_index=0,
+                                       q_min=q_min, q_max=q_max)
+        top = tk.Toplevel(self); top.title("Rating curve")
+        fig = Figure(figsize=pl.XS_FIGSIZE)
+        ax = fig.add_subplot(111)
+        pl.rating_figure(points, xs_name=self.project.reaches[0].cross_sections[0].name, ax=ax)
+        FigureCanvasTkAgg(fig, master=top).get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    def run_freeboard(self) -> None:
+        if self.last_result is None:
+            messagebox.showinfo("Run first", "Compute a profile first."); return
+        rows = analyzer.freeboard_check(self.last_result, self.project.reaches[0])
+        top = tk.Toplevel(self); top.title("Freeboard check")
+        tv = ttk.Treeview(top, columns=("wse","tob","fb","ok"), show="headings")
+        for c, t in zip(("wse","tob","fb","ok"),
+                        ("WSE","Top of bank","Freeboard","OK?")):
+            tv.heading(c, text=t)
+        for r in rows:
+            tv.insert("", tk.END, text=r.xs_name,
+                      values=(f"{r.wse:.2f}", f"{r.top_of_bank:.2f}",
+                              f"{r.freeboard:.2f}", "yes" if r.ok else "NO"))
+        tv.pack(fill=tk.BOTH, expand=True)
+
+    def run_inspect(self) -> None:
+        hints = helper.inspect_project(self.project)
+        top = tk.Toplevel(self); top.title("Project inspection")
+        txt = tk.Text(top, wrap=tk.WORD, width=80, height=20)
+        if not hints:
+            txt.insert(tk.END, "No issues found.")
+        for h in hints:
+            txt.insert(tk.END, f"[{h.level}] {h.message}\n")
+        txt.pack(fill=tk.BOTH, expand=True)
+
+    def toggle_units(self) -> None:
+        new = "US" if self.project.unit_system == "SI" else "SI"
+        self.project.unit_system = new
+        self.project.apply_units()
+        messagebox.showinfo("Units",
+            f"Unit system set to {new}. NOTE: existing numeric geometry "
+            f"was NOT converted; you're interpreting the same numbers in "
+            f"new units. Convert manually if needed.")
+
+    # =========================================================================
+    # Companion text
+    # =========================================================================
+    def _show_welcome(self) -> None:
+        self.nb.select(self.tab_helper)
+        self.helper_text.delete("1.0", tk.END)
+        self.helper_text.insert(tk.END, helper.welcome())
+
+    def _explain(self, topic: str) -> None:
+        self.nb.select(self.tab_helper)
+        self.helper_text.delete("1.0", tk.END)
+        self.helper_text.insert(tk.END, f"# {topic}\n\n")
+        self.helper_text.insert(tk.END, helper.explain(topic))
+
+
+def launch() -> None:
+    App().mainloop()
