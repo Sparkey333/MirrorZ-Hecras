@@ -11,10 +11,10 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src import hydraulics as hy
-from src.geometry import CrossSection, Reach
-from src.project import default_project, Project
-from src.solver import solve_profile
+from mirrorz import hydraulics as hy
+from mirrorz.geometry import CrossSection, Reach
+from mirrorz.project import default_project, Project
+from mirrorz.solver import solve_profile
 
 
 class TestHydraulics(unittest.TestCase):

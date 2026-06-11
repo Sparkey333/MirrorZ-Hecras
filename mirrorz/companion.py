@@ -1,5 +1,5 @@
 """
-src/companion.py
+mirrorz/companion.py
 ================================================================================
 "Hecras Helper" - the guided companion for MirrorZ-Hecras.
 

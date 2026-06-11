@@ -1,5 +1,5 @@
 """
-src/analyzer.py
+mirrorz/analyzer.py
 ================================================================================
 Post-run analysis utilities for MirrorZ-Hecras profiles.
 
@@ -101,11 +101,21 @@ class FreeboardRow:
 
 
 def freeboard_check(result: ProfileResult, reach: Reach,
-                    required: float = FREEBOARD_REQ) -> List[FreeboardRow]:
+                    required: Optional[float] = None) -> List[FreeboardRow]:
     """
     For each XS in the result, compare WSE to the lower of the two bank tops
     (if bank stations are set) and report freeboard.
+
+    ### LEARN: MUTABLE-DEFAULT GOTCHA (cousin of) ###
+    `required` defaults to None and is resolved against the module global
+    FREEBOARD_REQ *inside* the function. Writing `required=FREEBOARD_REQ` in
+    the signature looks cleaner but is a classic Python trap: default values
+    are evaluated ONCE, when the function is defined. The Settings dialog
+    rebinds analyzer.FREEBOARD_REQ at runtime, and a def-time default would
+    silently keep using the old value forever.
     """
+    if required is None:
+        required = FREEBOARD_REQ
     by_name: Dict[str, CrossSection] = {xs.name: xs for xs in reach.cross_sections}
     rows: List[FreeboardRow] = []
     for s in result.sections:

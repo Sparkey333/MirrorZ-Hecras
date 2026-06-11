@@ -11,8 +11,8 @@ NOTE
 --------------------------------------------------------------------------------
 Headless/server environments can import the package directly without Tk:
 
-    from src.project import Project
-    from src.solver import solve_profile
+    from mirrorz.project import Project
+    from mirrorz.solver import solve_profile
     p = Project.load("examples/simple_channel.json")
     p.apply_units()
     res = solve_profile(p.reaches[0], p.flows[0].discharge,
@@ -27,10 +27,10 @@ import sys
 
 
 def _run_headless(path: str) -> int:
-    from src.project import Project
-    from src.solver import solve_profile
-    from src.analyzer import summarize
-    from src.companion import next_steps, inspect_project
+    from mirrorz.project import Project
+    from mirrorz.solver import solve_profile
+    from mirrorz.analyzer import summarize
+    from mirrorz.companion import next_steps, inspect_project
     p = Project.load(path)
     p.apply_units()
     hints = inspect_project(p)
@@ -51,9 +51,9 @@ def _run_headless(path: str) -> int:
 
 def _run_cli() -> int:
     """Minimal REPL for poking at a default project without a display."""
-    from src.project import default_project
-    from src.solver import solve_profile
-    from src.analyzer import summarize
+    from mirrorz.project import default_project
+    from mirrorz.solver import solve_profile
+    from mirrorz.analyzer import summarize
     print("MirrorZ-Hecras CLI. Type 'help' for commands.")
     p = default_project(); p.apply_units()
     while True:
@@ -85,7 +85,10 @@ def _run_cli() -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from mirrorz import __version__
     parser = argparse.ArgumentParser(description="MirrorZ-Hecras launcher")
+    parser.add_argument("--version", action="version",
+                        version=f"MirrorZ-Hecras {__version__}")
     parser.add_argument("--cli", action="store_true", help="run CLI repl")
     parser.add_argument("--run", metavar="PROJECT.json",
                         help="load project, run first flow, print summary")
@@ -98,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Default: launch GUI
     try:
-        from src.gui import launch
+        from mirrorz.gui import launch
     except Exception as e:
         print(f"GUI unavailable ({e}). Use --cli or --run for headless mode.")
         return 1

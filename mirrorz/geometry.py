@@ -1,5 +1,5 @@
 """
-src/geometry.py
+mirrorz/geometry.py
 ================================================================================
 Cross-section and reach geometry for MirrorZ-Hecras.
 

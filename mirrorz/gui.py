@@ -1,5 +1,5 @@
 """
-src/gui.py
+mirrorz/gui.py
 ================================================================================
 Tkinter desktop GUI for MirrorZ-Hecras.
 
@@ -12,6 +12,13 @@ Right tabs:
     2. Profile         - run the solver and see water surface plot
     3. Summary         - CSV-style text output of last run
     4. Companion       - guided wizard + glossary
+
+PERSISTENT SETTINGS (new in 0.2)
+--------------------------------------------------------------------------------
+The app loads mirrorz/settings.py's AppSettings at startup and applies them
+to the numeric modules before anything runs. Tools -> Settings... opens a
+dialog; saving applies immediately AND persists to the per-user config dir.
+Window size and the recent-file list survive restarts the same way.
 
 HIGHLIGHTED TWEAK AREAS
 --------------------------------------------------------------------------------
@@ -31,15 +38,18 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 from typing import List, Optional
 
-# Matplotlib embedding. We force TkAgg here so the plotting module picks it up.
+# Matplotlib embedding. We pick TkAgg BEFORE importing our plotting module
+# (which respects an already-chosen backend - see plotting.py's WARN note).
 import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+from . import __version__
 from .project import Project, FlowPlan, default_project
 from .geometry import CrossSection, Reach
-from .solver import solve_profile, ProfileResult
+from .solver import solve_profile, ProfileResult, clear_critical_cache
+from .settings import AppSettings
 from . import plotting as pl
 from . import companion as helper
 from . import analyzer
@@ -47,8 +57,8 @@ from . import hydraulics as hy
 
 
 # ### TWEAK: WINDOW ###
-WINDOW_TITLE   = "MirrorZ-Hecras — open-channel hydraulics, for learning"
-WINDOW_SIZE    = "1180x740"
+WINDOW_TITLE   = f"MirrorZ-Hecras {__version__} — open-channel hydraulics, for learning"
+WINDOW_SIZE    = "1180x740"   # used only when settings carry no saved geometry
 
 
 class App(tk.Tk):
@@ -60,17 +70,34 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title(WINDOW_TITLE)
-        self.geometry(WINDOW_SIZE)
+
+        # Load persisted user preferences FIRST so tolerances/units are live
+        # before the default project (which solves normal depth) is built.
+        self.settings = AppSettings.load()
+        self.settings.apply()
+        self.geometry(self.settings.window_geometry or WINDOW_SIZE)
+        # Save settings (incl. window geometry) when the window closes.
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self.project: Project = default_project()
+        self.project.unit_system = self.settings.unit_system
         self.project.apply_units()
         self.last_result: Optional[ProfileResult] = None
-        self.selected_xs_index: int = 0
 
         self._build_menu()
         self._build_body()
         self._refresh_tree()
-        self._show_welcome()
+        if self.settings.show_welcome:
+            self._show_welcome()
+
+    def _on_close(self) -> None:
+        """Persist window geometry + recent files, then quit."""
+        try:
+            self.settings.window_geometry = self.geometry()
+            self.settings.save()
+        except Exception:
+            pass   # never block exit over a preferences write
+        self.destroy()
 
     # =========================================================================
     # Menu bar
@@ -81,9 +108,15 @@ class App(tk.Tk):
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="New Project",       command=self.new_project)
         file_menu.add_command(label="Open…",             command=self.open_project)
+        # Recent-files submenu is rebuilt every time a file is opened/saved.
+        self.recent_menu = tk.Menu(file_menu, tearoff=0)
+        file_menu.add_cascade(label="Open Recent",       menu=self.recent_menu)
+        self._rebuild_recent_menu()
         file_menu.add_command(label="Save As…",          command=self.save_project)
         file_menu.add_separator()
-        file_menu.add_command(label="Quit",              command=self.destroy)
+        file_menu.add_command(label="Export Summary CSV…", command=self.export_csv)
+        file_menu.add_separator()
+        file_menu.add_command(label="Quit",              command=self._on_close)
         menubar.add_cascade(label="File", menu=file_menu)
 
         run_menu = tk.Menu(menubar, tearoff=0)
@@ -93,6 +126,7 @@ class App(tk.Tk):
         menubar.add_cascade(label="Run", menu=run_menu)
 
         tools_menu = tk.Menu(menubar, tearoff=0)
+        tools_menu.add_command(label="Settings…",        command=self.open_settings)
         tools_menu.add_command(label="Inspect Project",  command=self.run_inspect)
         tools_menu.add_command(label="Units: Toggle SI / US", command=self.toggle_units)
         menubar.add_cascade(label="Tools", menu=tools_menu)
@@ -284,6 +318,7 @@ class App(tk.Tk):
         xs.name = self.xs_name_var.get() or xs.name
         xs.river_station = float(self.xs_rs_var.get())
         xs.n_channel = float(self.xs_n_var.get())
+        clear_critical_cache()   # n/name changed; drop stale cached values
         self.project.reaches[ri].sort_upstream()
         self._refresh_tree()
         self._refresh_xs_plot()
@@ -300,6 +335,7 @@ class App(tk.Tk):
         pts = sorted(zip(xs.stations, xs.elevations))
         xs.stations  = [p[0] for p in pts]
         xs.elevations= [p[1] for p in pts]
+        clear_critical_cache()   # shape changed -> cached critical depth is stale
         self._reload_points(); self._refresh_xs_plot()
 
     def _pt_edit(self) -> None:
@@ -318,6 +354,7 @@ class App(tk.Tk):
         pts = sorted(zip(xs.stations, xs.elevations))
         xs.stations  = [p[0] for p in pts]
         xs.elevations= [p[1] for p in pts]
+        clear_critical_cache()
         self._reload_points(); self._refresh_xs_plot()
 
     def _pt_remove(self) -> None:
@@ -331,6 +368,7 @@ class App(tk.Tk):
                 "A cross-section needs at least 3 points.")
             return
         xs.stations.pop(i); xs.elevations.pop(i)
+        clear_critical_cache()
         self._reload_points(); self._refresh_xs_plot()
 
     def _refresh_xs_plot(self) -> None:
@@ -413,13 +451,32 @@ class App(tk.Tk):
     def open_project(self) -> None:
         path = filedialog.askopenfilename(filetypes=[("JSON","*.json"), ("All","*.*")])
         if not path: return
+        self._open_path(path)
+
+    def _open_path(self, path: str) -> None:
+        """Shared by Open… and the recent-files menu."""
         try:
             self.project = Project.load(path)
             self.project.apply_units()
         except Exception as e:
             messagebox.showerror("Open failed", str(e)); return
+        clear_critical_cache()           # new geometry invalidates the cache
         self.last_result = None
+        self.settings.remember_file(path)
+        self.settings.save()
+        self._rebuild_recent_menu()
         self._refresh_tree()
+
+    def _rebuild_recent_menu(self) -> None:
+        self.recent_menu.delete(0, tk.END)
+        if not self.settings.recent_files:
+            self.recent_menu.add_command(label="(empty)", state=tk.DISABLED)
+            return
+        for p in self.settings.recent_files:
+            # Show just the file name, keep the full path in the callback.
+            self.recent_menu.add_command(
+                label=os.path.basename(p),
+                command=lambda path=p: self._open_path(path))
 
     def save_project(self) -> None:
         path = filedialog.asksaveasfilename(defaultextension=".json",
@@ -427,9 +484,26 @@ class App(tk.Tk):
         if not path: return
         try:
             self.project.save(path)
+            self.settings.remember_file(path)
+            self.settings.save()
+            self._rebuild_recent_menu()
             messagebox.showinfo("Saved", f"Project saved to\n{path}")
         except Exception as e:
             messagebox.showerror("Save failed", str(e))
+
+    def export_csv(self) -> None:
+        """Write the last run's summary table to a CSV file."""
+        if self.last_result is None:
+            messagebox.showinfo("Run first", "Compute a profile first."); return
+        path = filedialog.asksaveasfilename(defaultextension=".csv",
+                filetypes=[("CSV","*.csv")])
+        if not path: return
+        try:
+            with open(path, "w") as fh:
+                fh.write(analyzer.summarize(self.last_result) + "\n")
+            messagebox.showinfo("Exported", f"Summary written to\n{path}")
+        except Exception as e:
+            messagebox.showerror("Export failed", str(e))
 
     def run_profile(self) -> None:
         if not self.project.flows:
@@ -506,10 +580,95 @@ class App(tk.Tk):
         new = "US" if self.project.unit_system == "SI" else "SI"
         self.project.unit_system = new
         self.project.apply_units()
+        self.settings.unit_system = new      # persist the preference too
+        self.settings.save()
+        clear_critical_cache()               # g changed -> critical depth changed
         messagebox.showinfo("Units",
             f"Unit system set to {new}. NOTE: existing numeric geometry "
             f"was NOT converted; you're interpreting the same numbers in "
             f"new units. Convert manually if needed.")
+
+    # =========================================================================
+    # Settings dialog (Tools -> Settings…)
+    # =========================================================================
+    def open_settings(self) -> None:
+        """
+        Modal preferences dialog. Each row edits one AppSettings field; OK
+        validates, applies to the live numeric modules, and persists to disk.
+
+        ### LEARN ###: we deliberately validate on OK rather than on every
+        keystroke - simpler code, and partially-typed numbers ("0.") never
+        trigger spurious errors.
+        """
+        s = self.settings
+        dlg = tk.Toplevel(self)
+        dlg.title("Settings")
+        dlg.transient(self)       # stay on top of the main window
+        dlg.grab_set()            # modal: block main-window input until closed
+        frame = ttk.Frame(dlg, padding=12)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        # -- row helpers ----------------------------------------------------
+        unit_var   = tk.StringVar(value=s.unit_system)
+        tol_var    = tk.StringVar(value=str(s.wse_tolerance))
+        iters_var  = tk.StringVar(value=str(s.max_step_iters))
+        fric_var   = tk.StringVar(value=s.friction_method)
+        fb_var     = tk.StringVar(value=str(s.freeboard_req))
+        wel_var    = tk.BooleanVar(value=s.show_welcome)
+
+        rows = [
+            ("Unit system",
+             ttk.Combobox(frame, textvariable=unit_var, state="readonly",
+                          values=("SI", "US"), width=12),
+             "k=1.0 & g=9.807 (SI) vs k=1.486 & g=32.174 (US)"),
+            ("WSE tolerance",
+             ttk.Entry(frame, textvariable=tol_var, width=12),
+             "Energy-balance convergence, in m/ft (HEC-RAS: 0.01 ft)"),
+            ("Max iterations / step",
+             ttk.Entry(frame, textvariable=iters_var, width=12),
+             "Per-section cap before flagging non-convergence"),
+            ("Friction averaging",
+             ttk.Combobox(frame, textvariable=fric_var, state="readonly",
+                          values=("average", "harmonic",
+                                  "geometric", "conveyance"), width=12),
+             "How S_f is averaged between two sections"),
+            ("Required freeboard",
+             ttk.Entry(frame, textvariable=fb_var, width=12),
+             "Pass/fail threshold for the Freeboard Check (m/ft)"),
+            ("Show welcome at startup",
+             ttk.Checkbutton(frame, variable=wel_var),
+             "Open the Companion tab with the intro text"),
+        ]
+        for r, (label, widget, hint) in enumerate(rows):
+            ttk.Label(frame, text=label + ":").grid(row=r, column=0,
+                                                    sticky="w", pady=3)
+            widget.grid(row=r, column=1, sticky="w", padx=6)
+            ttk.Label(frame, text=hint, foreground="#666",
+                      font=("Helvetica", 9)).grid(row=r, column=2, sticky="w")
+
+        def on_ok() -> None:
+            try:
+                s.unit_system     = unit_var.get()
+                s.wse_tolerance   = float(tol_var.get())
+                s.max_step_iters  = int(iters_var.get())
+                s.friction_method = fric_var.get()
+                s.freeboard_req   = float(fb_var.get())
+                s.show_welcome    = bool(wel_var.get())
+            except ValueError as e:
+                messagebox.showerror("Invalid value", str(e), parent=dlg)
+                return
+            s.sanitize()          # clamp anything out of range
+            s.apply()             # live immediately, no restart needed
+            s.save()              # persist to the per-user config dir
+            self.project.unit_system = s.unit_system
+            self.project.apply_units()
+            clear_critical_cache()
+            dlg.destroy()
+
+        btns = ttk.Frame(frame)
+        ttk.Button(btns, text="OK",     command=on_ok).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btns, text="Cancel", command=dlg.destroy).pack(side=tk.LEFT)
+        btns.grid(row=len(rows), column=0, columnspan=3, pady=(12, 0))
 
     # =========================================================================
     # Companion text

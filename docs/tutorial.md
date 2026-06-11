@@ -39,7 +39,7 @@ downstream section). Run it again and compare the two plots.
 With a computed profile in hand, click **Run → Freeboard Check**. The tool
 compares each WSE to the lower bank-top elevation and flags sections with
 less than the required freeboard (default 0.5 m, `### TWEAK: FREEBOARD_REQ ###`
-in `src/analyzer.py`).
+in `mirrorz/analyzer.py`).
 
 ## 6. Build a rating curve
 
@@ -59,13 +59,13 @@ Every source file opens with a list of `### TWEAK ###` and `### LEARN ###`
 anchors. Search for them to jump to the most useful spots:
 
 ```bash
-grep -n "### LEARN" src/*.py
-grep -n "### TWEAK" src/*.py
+grep -n "### LEARN" mirrorz/*.py
+grep -n "### TWEAK" mirrorz/*.py
 ```
 
 Recommended reading order if you want the big picture:
 
-1. `src/hydraulics.py` — the math
-2. `src/geometry.py` — how shapes become hydraulic properties
-3. `src/solver.py` — how the profile is marched section by section
-4. `src/companion.py` — the knowledge base behind the helper
+1. `mirrorz/hydraulics.py` — the math
+2. `mirrorz/geometry.py` — how shapes become hydraulic properties
+3. `mirrorz/solver.py` — how the profile is marched section by section
+4. `mirrorz/companion.py` — the knowledge base behind the helper

@@ -1,5 +1,5 @@
 """
-src/project.py
+mirrorz/project.py
 ================================================================================
 Project file I/O + sensible defaults, for MirrorZ-Hecras.
 

@@ -1,9 +1,9 @@
 """
-src/plotting.py
+mirrorz/plotting.py
 ================================================================================
 Matplotlib renderings for cross-sections and water-surface profiles.
 
-The GUI embeds these figures in Tk canvases (see src/gui.py), but every
+The GUI embeds these figures in Tk canvases (see mirrorz/gui.py), but every
 function here is also usable standalone:
 
     fig = cross_section_figure(xs, wse=100.5)
@@ -18,11 +18,23 @@ HIGHLIGHTED TWEAK AREAS
 
 from __future__ import annotations
 
+import os
+import sys
 from typing import List, Optional
 
 import matplotlib
-# Use a non-interactive backend by default; the Tk GUI will flip it to TkAgg.
-matplotlib.use("Agg")
+# ### WARN ###: matplotlib allows only ONE backend per process, and whoever
+# calls matplotlib.use() last before pyplot starts drawing wins. The GUI
+# selects "TkAgg" (interactive, embeds in Tk); headless scripts need "Agg"
+# (renders to memory, no display required). v0.1 forced Agg unconditionally
+# here, which silently overrode the GUI's TkAgg because gui.py imports this
+# module *after* choosing its backend. The fix: only force Agg when there is
+# genuinely no display to draw on (Linux/BSD without $DISPLAY / $WAYLAND).
+# macOS and Windows always have a windowing system available.
+if (sys.platform.startswith("linux")
+        and not os.environ.get("DISPLAY")
+        and not os.environ.get("WAYLAND_DISPLAY")):
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from .geometry import CrossSection

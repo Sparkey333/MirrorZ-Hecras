@@ -3,7 +3,13 @@ __pycache__/
 *.pyo
 *.egg-info/
 .venv/
+.build-venv/
 .env
+# PyInstaller outputs
+build/
+dist/
+# Local reference material (copyrighted PDFs etc.) - never commit these.
+docs/reference/
 .ipynb_checkpoints/
 .mypy_cache/
 .pytest_cache/

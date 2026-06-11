@@ -1,5 +1,5 @@
 """
-src/solver.py
+mirrorz/solver.py
 ================================================================================
 1-D Steady-flow water-surface profile solver (Standard-Step Method).
 
@@ -127,6 +127,37 @@ class ProfileResult:
 # Single-section analysis at a fixed WSE
 # =============================================================================
 
+# ### LEARN: MEMOIZATION ###
+# Critical depth depends only on the SECTION SHAPE and the DISCHARGE - not on
+# the trial water surface. But _step_between calls analyze_section once per
+# iteration (up to MAX_STEP_ITERS times per section), and each call used to
+# re-run the critical-depth root-finder from scratch: the same answer
+# computed ~30 times. Caching it by (section identity, Q) cuts profile-solve
+# work dramatically - the classic time-for-memory trade. We key on id(xs)
+# plus the section name so two sections that happen to share a name don't
+# collide, and we cap the cache so a long-lived GUI session can't grow it
+# without bound.
+_CRIT_CACHE: dict = {}
+_CRIT_CACHE_MAX = 4096   # ### TWEAK ###: cache entry cap
+
+
+def clear_critical_cache() -> None:
+    """Drop memoized critical depths. The GUI calls this after the user
+    edits geometry, because a cached value for a reshaped section is wrong."""
+    _CRIT_CACHE.clear()
+
+
+def _critical_depth_cached(xs: CrossSection, q: float) -> float:
+    key = (id(xs), xs.name, round(q, 9))
+    yc = _CRIT_CACHE.get(key)
+    if yc is None:
+        yc = hy.critical_depth(q, xs.section_fn())
+        if len(_CRIT_CACHE) >= _CRIT_CACHE_MAX:
+            _CRIT_CACHE.clear()   # simple wholesale eviction is fine here
+        _CRIT_CACHE[key] = yc
+    return yc
+
+
 def analyze_section(xs: CrossSection, wse: float, q: float) -> SectionResult:
     """Compute a full hydraulic snapshot at a section for a given WSE."""
     A, T, P = xs.hydraulic_properties(wse)
@@ -137,7 +168,7 @@ def analyze_section(xs: CrossSection, wse: float, q: float) -> SectionResult:
     # Hydraulic depth for Froude uses A/T (top width, not perimeter).
     Dh = (A / T) if T > 0 else 0.0
     Fr = hy.froude_number(V, Dh)
-    yc = hy.critical_depth(q, xs.section_fn())
+    yc = _critical_depth_cached(xs, q)
     crit_wse = xs.min_elevation + yc
     if Fr > 1.01:
         regime = "supercritical"

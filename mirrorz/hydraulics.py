@@ -1,5 +1,5 @@
 """
-src/hydraulics.py
+mirrorz/hydraulics.py
 ================================================================================
 Core open-channel hydraulics for MirrorZ-Hecras.
 
@@ -9,7 +9,7 @@ WHAT THIS FILE CONTAINS
   * Energy/momentum helpers (specific energy, Froude number, hydraulic depth)
   * Critical-depth solver (minimum specific energy)
   * Normal-depth solver (uniform flow for a given slope)
-  * Conveyance (K) used by the standard-step method in src/solver.py
+  * Conveyance (K) used by the standard-step method in mirrorz/solver.py
 
 HEC-RAS PARALLEL
 --------------------------------------------------------------------------------
@@ -273,7 +273,7 @@ def rect_normal_depth(q: float, width: float, n: float, slope: float,
 #     A = wetted area at depth y
 #     T = top width at depth y
 #     P = wetted perimeter at depth y
-# This is exactly what src/geometry.py.CrossSection.hydraulic_properties()
+# This is exactly what mirrorz/geometry.py.CrossSection.hydraulic_properties()
 # produces, so the two modules plug together cleanly.
 # =============================================================================
 

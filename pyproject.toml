@@ -1,0 +1,64 @@
+# ============================================================================
+# pyproject.toml - Python packaging metadata for MirrorZ-Hecras
+# ============================================================================
+# This makes the project pip-installable ("pip install .") and gives the
+# desktop bundlers (PyInstaller) a single authoritative place for name,
+# version, and dependencies.
+#
+# NOTE: the version is read FROM mirrorz/__init__.py (dynamic), so you bump
+# the version in exactly one place and pip, the GUI title bar, and the DMG
+# file name all agree.
+# ============================================================================
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mirrorz-hecras"
+dynamic = ["version"]
+description = "Educational open-channel hydraulics desktop app mirroring HEC-RAS concepts (1D steady flow, standard-step method)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "MirrorZ-Hecras contributors" }]
+keywords = ["hydraulics", "HEC-RAS", "open-channel", "water-surface-profile",
+            "engineering", "education"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.8",
+    "matplotlib>=3.5",
+]
+
+[project.optional-dependencies]
+# Everything needed to BUILD distributable desktop apps (not needed to run).
+package = [
+    "pyinstaller>=6.0",
+    "pillow>=10.0",       # icon generation (make_icons.py)
+]
+
+[project.urls]
+Repository = "https://github.com/Sparkey333/MirrorZ-Hecras"
+
+# "gui-scripts" creates a windowed launcher (no console window on Windows);
+# "scripts" creates a terminal command. We ship both spellings.
+[project.gui-scripts]
+mirrorz-hecras = "mirrorz.gui:launch"
+
+[project.scripts]
+mirrorz-hecras-cli = "main:main"
+
+[tool.setuptools]
+packages = ["mirrorz"]
+py-modules = ["main"]
+
+[tool.setuptools.dynamic]
+version = { attr = "mirrorz.__version__" }
