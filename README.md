@@ -19,6 +19,8 @@ Python so you can *read every step* of the math that HEC-RAS hides behind its GU
 - **Critical depth & normal depth** solvers on arbitrary sections
 - **Companion wizard** — rule-based guidance, glossary, sanity checks
 - **Analyzer** — rating curves, freeboard checks, CSV-style summaries
+- **Reports** — self-contained HTML and multi-page PDF deliverables
+  (profile plot, results table, cross-sections, disclaimer)
 - **Tk GUI** with embedded matplotlib plots
 - **JSON project files** that are human-readable and diff-friendly
 
@@ -70,6 +72,7 @@ MirrorZ-Hecras/
 │   ├── settings.py      persistent user preferences (per-user config dir)
 │   ├── admin.py         editions, license keys, themes, branding
 │   ├── controller.py    scripting/automation API (Goodell-style)
+│   ├── report.py        HTML + PDF report generation
 │   ├── companion.py     "Hecras Helper" — explanations + sanity checks
 │   ├── analyzer.py      rating curve, freeboard, summary
 │   ├── plotting.py      matplotlib cross-section & profile figures
@@ -91,7 +94,8 @@ MirrorZ-Hecras/
 └── tests/
     ├── test_smoke.py
     ├── test_settings_controller.py
-    └── test_admin.py
+    ├── test_admin.py
+    └── test_report.py
 ```
 
 ## Packaging & selling

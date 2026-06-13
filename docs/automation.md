@@ -82,6 +82,28 @@ for node, v in rc.output_table("froude").items():
     print(f"{node:10s} Fr={v:.2f}")
 ```
 
+### Recipe 5 — generate a deliverable report (HTML or PDF)
+
+```python
+rc = Controller().open_project("examples/natural_river.json")
+rc.compute_current_plan()
+rc.export_html_report("flood_study.html",
+                      brand_caption="U of Example · CIVE 462")
+rc.export_pdf_report("flood_study.pdf")
+```
+
+The same thing from the command line, format chosen by extension:
+
+```bash
+python main.py --run examples/natural_river.json --report flood_study.html
+python main.py --run examples/natural_river.json --report flood_study.pdf
+```
+
+Reports are **never gated at the library/CLI layer** — the MIT engine stays
+fully capable for scripting and CI. Edition gating (Pro/Classroom) applies
+only to the GUI menu items, which is a storefront decision, not an engine
+limitation. See `mirrorz/report.py`.
+
 ## Where this is heading (### TODO ### hooks already in the code)
 
 * `Controller.set_boundary(...)` for direct boundary-condition sweeps

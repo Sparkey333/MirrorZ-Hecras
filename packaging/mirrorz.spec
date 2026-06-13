@@ -48,6 +48,8 @@ a = Analysis(
     # tkinter backends sometimes need a nudge to be discovered.
     hiddenimports=[
         "matplotlib.backends.backend_tkagg",
+        "matplotlib.backends.backend_agg",   # report.py HTML thumbnails
+        "matplotlib.backends.backend_pdf",   # report.py PDF assembly
         "PIL._tkinter_finder",
     ],
     # ### TWEAK: EXCLUDES ### - strip heavyweight things we never import.

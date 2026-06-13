@@ -120,6 +120,8 @@ class App(tk.Tk):
         file_menu.add_command(label="Save As…",          command=self.save_project)
         file_menu.add_separator()
         file_menu.add_command(label="Export Summary CSV…", command=self.export_csv)
+        file_menu.add_command(label="Export HTML Report…", command=self.export_html_report)
+        file_menu.add_command(label="Export PDF Report…",  command=self.export_pdf_report)
         file_menu.add_separator()
         file_menu.add_command(label="Quit",              command=self._on_close)
         menubar.add_cascade(label="File", menu=file_menu)
@@ -674,6 +676,55 @@ class App(tk.Tk):
             with open(path, "w") as fh:
                 fh.write(analyzer.summarize(self.last_result) + "\n")
             messagebox.showinfo("Exported", f"Summary written to\n{path}")
+        except Exception as e:
+            messagebox.showerror("Export failed", str(e))
+
+    # ---- Report export (HTML / PDF) -------------------------------------
+    # Both gated on the corresponding edition feature flag. The gate lives
+    # ONLY here in the GUI; the controller/library can always generate
+    # reports (the MIT engine is never crippled - see controller.py).
+    def _report_precheck(self, feature: str, label: str) -> bool:
+        if not self.admin.feature_enabled(feature):
+            messagebox.showinfo("Pro feature",
+                f"{label} is included with the Pro and Classroom editions.\n\n"
+                "Open the Admin tab to enter a license key.")
+            return False
+        if self.last_result is None:
+            messagebox.showinfo("Run first", "Compute a profile first.")
+            return False
+        return True
+
+    def export_html_report(self) -> None:
+        if not self._report_precheck("html_report", "HTML report export"):
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".html",
+                filetypes=[("HTML", "*.html")])
+        if not path:
+            return
+        try:
+            from . import report
+            report.save_html_report(
+                path, self.last_result, self.project.reaches[0],
+                project_name=self.project.name,
+                brand_caption=self.admin.header_caption())
+            messagebox.showinfo("Exported", f"HTML report written to\n{path}")
+        except Exception as e:
+            messagebox.showerror("Export failed", str(e))
+
+    def export_pdf_report(self) -> None:
+        if not self._report_precheck("pdf_report", "PDF report export"):
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".pdf",
+                filetypes=[("PDF", "*.pdf")])
+        if not path:
+            return
+        try:
+            from . import report
+            report.build_pdf_report(
+                path, self.last_result, self.project.reaches[0],
+                project_name=self.project.name,
+                brand_caption=self.admin.header_caption())
+            messagebox.showinfo("Exported", f"PDF report written to\n{path}")
         except Exception as e:
             messagebox.showerror("Export failed", str(e))
 

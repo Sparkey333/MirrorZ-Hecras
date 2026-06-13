@@ -224,6 +224,40 @@ class Controller:
         return {s.name: getattr(s, attr) for s in self.last_result.sections}
 
     # ------------------------------------------------------------------
+    # Reports  (no HEC-RAS COM equivalent - this is a MirrorZ extra)
+    # ------------------------------------------------------------------
+    def export_html_report(self, path: str, reach_index: int = 0,
+                           brand_caption: str = "") -> str:
+        """Write a self-contained HTML report of the last compute; return
+        the path. Raises ControllerError if nothing has been computed.
+
+        Reports are deliberately NOT edition-gated at the library layer -
+        the MIT engine stays fully capable for scripting. Edition gating is
+        a GUI/storefront concern (see gui.py), not an engine limitation."""
+        from . import report  # local import keeps matplotlib off the hot path
+        if self.last_result is None:
+            raise ControllerError(
+                "No results - call compute_current_plan() first.")
+        p = self._require_project()
+        report.save_html_report(
+            path, self.last_result, p.reaches[reach_index],
+            project_name=p.name, brand_caption=brand_caption)
+        return path
+
+    def export_pdf_report(self, path: str, reach_index: int = 0,
+                          brand_caption: str = "") -> str:
+        """Write a multi-page PDF report of the last compute; return path."""
+        from . import report
+        if self.last_result is None:
+            raise ControllerError(
+                "No results - call compute_current_plan() first.")
+        p = self._require_project()
+        report.build_pdf_report(
+            path, self.last_result, p.reaches[reach_index],
+            project_name=p.name, brand_caption=brand_caption)
+        return path
+
+    # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
     def _require_project(self) -> Project:

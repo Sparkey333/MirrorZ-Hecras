@@ -3,6 +3,38 @@
 All notable changes to MirrorZ-Hecras. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow SemVer.
 
+## [0.4.0] - 2026-06-13
+
+### Added
+- **Report generator** (`mirrorz/report.py`) — turns the gated-but-empty
+  `html_report` / `pdf_report` feature flags into a real deliverable:
+  - **HTML report**: single self-contained file with the profile plot and
+    cross-section thumbnails embedded as base64 PNGs (emailable, opens
+    offline). Includes run metadata, results table, freeboard table (when
+    banks are defined), companion findings, methodology note, and the
+    mandatory engineering disclaimer.
+  - **PDF report**: multi-page document assembled with matplotlib's
+    `PdfPages` — no new dependency. Title + profile + results table, then
+    four-up cross-section pages, then a methodology/disclaimer page, with
+    proper PDF document metadata.
+  - Cross-section thumbnails are evenly sampled above `THUMB_LIMIT` (24) so
+    a large river can't produce a 50 MB file.
+- **GUI**: File → Export HTML Report… / Export PDF Report…, gated on the
+  `html_report` / `pdf_report` edition flags (gate lives only in the GUI).
+- **Controller**: `export_html_report(path)` and `export_pdf_report(path)`
+  — never edition-gated; the MIT engine stays fully scriptable.
+- **CLI**: `--report OUT.html|OUT.pdf` (used with `--run`); format is chosen
+  from the file extension.
+- 8 report tests (required HTML elements, HTML-escaping of section names,
+  PDF header/size, thumbnail sampling cap, controller integration + the
+  compute-first guard). Suite now 35 tests.
+
+### Notes
+- Reviewed the standard-step reach-length convention: each section stores
+  the channel length from itself up to the next-upstream section; both the
+  sub- and super-critical marches use this consistently and the example
+  data matches it. Confirmed not a bug.
+
 ## [0.3.0] - 2026-06-13
 
 ### Added

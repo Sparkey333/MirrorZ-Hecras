@@ -26,7 +26,7 @@ import argparse
 import sys
 
 
-def _run_headless(path: str) -> int:
+def _run_headless(path: str, report_path: str | None = None) -> int:
     from mirrorz.project import Project
     from mirrorz.solver import solve_profile
     from mirrorz.analyzer import summarize
@@ -46,6 +46,18 @@ def _run_headless(path: str) -> int:
     print()
     for h in next_steps(result):
         print(f"[post:{h.level}] {h.message}")
+
+    # Optional report export. We pick HTML vs PDF from the file extension so
+    # the same flag serves both: --report out.html or --report out.pdf.
+    if report_path:
+        from mirrorz import report as _report
+        if report_path.lower().endswith(".pdf"):
+            _report.build_pdf_report(report_path, result, p.reaches[0],
+                                     project_name=p.name)
+        else:
+            _report.save_html_report(report_path, result, p.reaches[0],
+                                     project_name=p.name)
+        print(f"\nReport written to {report_path}")
     return 0
 
 
@@ -92,10 +104,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cli", action="store_true", help="run CLI repl")
     parser.add_argument("--run", metavar="PROJECT.json",
                         help="load project, run first flow, print summary")
+    parser.add_argument("--report", metavar="OUT.html|OUT.pdf",
+                        help="with --run, also write a report (format from "
+                             "the file extension)")
     args = parser.parse_args(argv)
 
     if args.run:
-        return _run_headless(args.run)
+        return _run_headless(args.run, report_path=args.report)
     if args.cli:
         return _run_cli()
 
