@@ -3,6 +3,40 @@
 All notable changes to MirrorZ-Hecras. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow SemVer.
 
+## [0.3.0] - 2026-06-13
+
+### Added
+- **Admin tab** in the GUI: Edition + License (with `Activate` / `Deactivate` /
+  `Buy…`), Design Choices (theme picker with live palette swap), Classroom
+  Branding fields (institution / instructor / course code, gated on the
+  classroom edition), Telemetry consent toggle (opt-in, default OFF and
+  documented to be inert until an endpoint exists), About panel.
+- **`mirrorz/admin.py`** — edition model with per-edition feature flags
+  (`free` / `pro` / `classroom`), themed palette set (`river`,
+  `blueprint`, `print`, `colorblind`), and offline checksum-based
+  `LicenseManager`. Persisted to `admin.json` alongside `settings.json`.
+- **CSV export gated by edition** — paid-feature gate wired through the
+  `csv_export` flag so the same code path serves both editions.
+- **Plot palette swap & branding caption** — `plotting.apply_palette()`
+  lets the admin tab apply a theme without restart; branding caption
+  appears on cross-section and profile titles when classroom is active.
+- **HTML pitch deck** (`docs/deck/pitch.html`) — 12-slide single-file
+  deck with embedded showcase plots; arrow-key navigation, print-to-PDF,
+  and deep-link fragments.
+- **Earnings projection** (`docs/earnings_projection.md`) — baseline
+  (~70 % probability) and "Musk-mode" (~15 %) Y1/Y2 scenarios with channel
+  mix, refund rates, sensitivity sweep, and an expected-value blend
+  (~$118 k over 24 months).
+- **30-day launch checklist** (`docs/launch_checklist.md`) — weekly steps
+  and an explicit anti-checklist of things not to do pre-launch.
+- 13 admin tests (edition gating, license parser including the
+  off-by-one regression below, theme fallback, branding caption logic).
+
+### Fixed
+- License-key parser checked the dash at index 7 instead of 8, rejecting
+  every legitimate `MZH-XXXX-XXXX` key — caught by the new
+  `test_make_then_apply_roundtrips` test.
+
 ## [0.2.0] - 2026-06-11
 
 ### Added

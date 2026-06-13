@@ -43,13 +43,34 @@ from .solver import ProfileResult
 
 # =============================================================================
 # ### TWEAK: STYLE ###
+# Default palette - the admin tab overrides these at draw time via apply_palette.
 # =============================================================================
 GROUND_COLOR   = "#7a5230"   # earthy brown
 WATER_COLOR    = "#2a72c1"   # river blue
 ENERGY_COLOR   = "#d24a2a"   # red for EGL
 CRITICAL_COLOR = "#b8b800"   # dashed yellow for critical line
+BG_COLOR       = "#ffffff"
 FILL_ALPHA     = 0.35
 LINE_WIDTH     = 1.8
+
+# Optional branding caption appended to plot titles (classroom edition).
+BRAND_CAPTION  = ""
+
+
+def apply_palette(palette: dict, brand_caption: str = "") -> None:
+    """Swap the active plot palette and brand caption. Called by the admin
+    tab whenever the user picks a different theme or edits branding fields;
+    next redraw picks up the change. Keeping this as module-level globals
+    (instead of plumbing a Palette object through every function signature)
+    matches how the rest of MirrorZ exposes ### TWEAK ### knobs."""
+    global GROUND_COLOR, WATER_COLOR, ENERGY_COLOR, CRITICAL_COLOR, BG_COLOR
+    global BRAND_CAPTION
+    GROUND_COLOR   = palette.get("ground",   GROUND_COLOR)
+    WATER_COLOR    = palette.get("water",    WATER_COLOR)
+    ENERGY_COLOR   = palette.get("energy",   ENERGY_COLOR)
+    CRITICAL_COLOR = palette.get("critical", CRITICAL_COLOR)
+    BG_COLOR       = palette.get("bg",       BG_COLOR)
+    BRAND_CAPTION  = brand_caption or ""
 
 # ### TWEAK: FIG_SIZE ###
 XS_FIGSIZE      = (6.5, 3.8)
@@ -90,7 +111,11 @@ def cross_section_figure(xs: CrossSection,
 
     ax.set_xlabel("Station")
     ax.set_ylabel("Elevation")
-    ax.set_title(f"Cross-section: {xs.name}  (RS {xs.river_station:.1f})")
+    title = f"Cross-section: {xs.name}  (RS {xs.river_station:.1f})"
+    if BRAND_CAPTION:
+        title += f"\n{BRAND_CAPTION}"
+    ax.set_title(title)
+    ax.set_facecolor(BG_COLOR)
     ax.grid(True, linestyle=":", alpha=0.5)
     ax.legend(loc="best", fontsize=8)
     return fig
@@ -136,7 +161,11 @@ def profile_figure(result: ProfileResult,
 
     ax.set_xlabel("River station (upstream →)")
     ax.set_ylabel("Elevation")
-    ax.set_title(f"Profile: {result.reach_name}   Q = {result.discharge:g}")
+    title = f"Profile: {result.reach_name}   Q = {result.discharge:g}"
+    if BRAND_CAPTION:
+        title += f"\n{BRAND_CAPTION}"
+    ax.set_title(title)
+    ax.set_facecolor(BG_COLOR)
     ax.grid(True, linestyle=":", alpha=0.5)
     ax.legend(loc="best", fontsize=8)
     return fig

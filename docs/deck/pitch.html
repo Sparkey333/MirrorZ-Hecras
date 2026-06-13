@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MirrorZ-Hecras — Pitch Deck (Sample)</title>
+<!--
+  docs/deck/pitch.html — single-file investor / partner / press pitch deck.
+
+  USAGE
+    Just open in any browser. Arrow keys / space / clicks advance slides.
+    No bundler, no fonts to install, no JS framework — opens offline and
+    embeds cleanly in a Notion page or an email.
+
+  WHY HTML, NOT PDF/KEYNOTE?
+    1. Easy to clone slides for a partner / instructor variant.
+    2. Diffs nicely in git — copy stays under version control.
+    3. Print-to-PDF gives you a fixed file for the few investors who insist.
+
+  NOTE: this is a SAMPLE deck wired with the candid numbers from
+  docs/earnings_projection.md. Replace bracketed [FIELDS] with real values
+  before sending to anyone outside the project (founder name, contact, the
+  product rename — see docs/pricing.md §"Naming").
+-->
+<style>
+ :root{
+  --bg:#0f1320; --panel:#171b2c; --ink:#eef2ff; --muted:#9aa3c7;
+  --accent:#2a72c1; --accent2:#7ad0ff; --warn:#ffb86b; --good:#7ee49b;
+  --rule:#222a44;
+ }
+ *{box-sizing:border-box}
+ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; overflow:hidden; height:100%;}
+ .slide{
+  position:fixed; inset:0; padding:6vh 7vw; display:none;
+  grid-template-rows:auto 1fr auto; gap:1.2rem;
+  animation:fade .25s ease-out;
+ }
+ .slide.show{display:grid}
+ @keyframes fade{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+ h1{font-size:clamp(2.2rem,4vw,3.6rem); margin:0; line-height:1.05;
+  letter-spacing:-0.02em; font-weight:700}
+ h2{font-size:clamp(1.4rem,2.2vw,2rem); margin:0 0 .4rem 0;
+  color:var(--accent2); font-weight:600; letter-spacing:-0.01em}
+ h3{font-size:1.1rem; margin:0; color:var(--accent2)}
+ p,li{font-size:clamp(1rem,1.25vw,1.2rem); line-height:1.55; color:var(--ink)}
+ .muted{color:var(--muted)}
+ .footer{display:flex; justify-content:space-between; color:var(--muted);
+  font-size:.85rem; border-top:1px solid var(--rule); padding-top:.8rem}
+ .grid2{display:grid; grid-template-columns:1fr 1fr; gap:2rem; align-items:start}
+ .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.4rem}
+ .card{background:var(--panel); border:1px solid var(--rule);
+  border-radius:14px; padding:1.2rem 1.3rem}
+ .card h3{margin-bottom:.3rem}
+ .pill{display:inline-block; padding:.2rem .6rem; border-radius:999px;
+  background:#222a44; color:var(--accent2); font-size:.8rem; margin-right:.4rem}
+ .big{font-size:clamp(2.4rem,4.2vw,3.6rem); font-weight:700; color:var(--accent2);
+  line-height:1}
+ .small{font-size:.9rem; color:var(--muted)}
+ table{width:100%; border-collapse:collapse; font-size:1rem}
+ th,td{padding:.55rem .7rem; border-bottom:1px solid var(--rule); text-align:left}
+ th{color:var(--accent2); font-weight:600}
+ td.num{text-align:right; font-variant-numeric:tabular-nums}
+ img{max-width:100%; border-radius:10px; border:1px solid var(--rule)}
+ .nav{position:fixed; bottom:1rem; right:1.2rem; color:var(--muted);
+  font-size:.85rem}
+ .progress{position:fixed; top:0; left:0; height:3px; background:var(--accent);
+  transition:width .2s}
+ .hint{position:fixed; bottom:1rem; left:1.2rem; color:var(--muted);
+  font-size:.85rem}
+ a{color:var(--accent2); text-decoration:none}
+ .caveat{background:#2a1a1a; border:1px solid #5e3030; color:#ffd4c2;
+  padding:.8rem 1rem; border-radius:10px; font-size:.95rem}
+ .ok{color:var(--good)} .warn{color:var(--warn)}
+ ul{margin:.3rem 0 0 0; padding-left:1.2rem} li{margin:.3rem 0}
+ @media print{
+   html,body{background:#fff; color:#111; overflow:visible; height:auto}
+   .slide{display:grid !important; position:relative; inset:auto;
+    page-break-after:always; min-height:96vh}
+   .nav,.hint,.progress{display:none}
+   .card{background:#fff; border:1px solid #ccc}
+   h2,h3,.big{color:#0a4a8c}
+   .footer{border-top:1px solid #ccc}
+   .muted{color:#555}
+ }
+</style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+
+<!-- ===================================================================
+  1. COVER
+=================================================================== -->
+<section class="slide">
+ <div></div>
+ <div>
+   <span class="pill">Sample deck · v0.3</span>
+   <h1 style="margin-top:1rem">A teaching-grade<br>river-hydraulics studio<br>
+     <span class="muted" style="font-weight:400">priced like a textbook,
+     usable in a single afternoon.</span></h1>
+   <p class="small" style="margin-top:1.2rem">
+     <span class="pill">working name</span>
+     MirrorZ-Hecras → rename pending before commercial launch (see
+     <code>docs/pricing.md</code>).</p>
+ </div>
+ <div class="footer">
+  <span>[Founder Name] · [email] · [website]</span>
+  <span>SAMPLE — not for distribution as-is</span>
+ </div>
+</section>
+
+<!-- ===================================================================
+  2. PROBLEM
+=================================================================== -->
+<section class="slide">
+ <h2>Problem</h2>
+ <div class="grid2">
+  <div>
+   <p>Open-channel hydraulics is taught in every civil-engineering program
+   on Earth — and the only general-purpose tool students touch is
+   <strong>HEC-RAS</strong>: free, immensely capable, and <em>brutally
+   intimidating on day one</em>.</p>
+   <ul>
+    <li>Decades of accumulated UI; 30+ dialogs to compute one profile.</li>
+    <li>Windows-only; classrooms split-screen on Macs via Parallels.</li>
+    <li>No built-in guidance — Manning's <em>n</em>, regime choice,
+        boundary condition are all "you should know this".</li>
+    <li>Commercial wrappers exist (CivilGEO, Krey) — priced
+        <strong>$1,500 – $8,000 / seat</strong>. Not for students.</li>
+   </ul>
+   <p class="caveat">Result: a generation of engineers who can <em>operate</em>
+   HEC-RAS but cannot <em>read</em> what it is doing. The math gets hidden
+   behind buttons.</p>
+  </div>
+  <div class="card">
+   <h3>Who feels it</h3>
+   <ul>
+    <li><span class="ok">Students</span> — pay $150 for a textbook
+        they don't read; need to <em>see</em> the math.</li>
+    <li><span class="ok">Instructors</span> — want a tool that shows the
+        standard-step iteration step-by-step, not hides it.</li>
+    <li><span class="ok">Junior engineers</span> — need a $30 personal
+        copy for refreshers between client jobs.</li>
+    <li class="muted">Senior PE designers — <em>not</em> our market. They
+        already have, and need, validated HEC-RAS.</li>
+   </ul>
+  </div>
+ </div>
+ <div class="footer"><span>Problem</span><span>2 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  3. SOLUTION
+=================================================================== -->
+<section class="slide">
+ <h2>Solution</h2>
+ <div class="grid2">
+  <div>
+   <p>A native desktop app (macOS / Windows / Linux) that <strong>runs the
+   same 1-D steady-flow math as HEC-RAS</strong> — Manning, conveyance,
+   critical depth, standard-step — but exposes every step:</p>
+   <ul>
+    <li><strong>Companion wizard</strong> — explains Froude, regime,
+        roughness in one click; flags shallow depths and near-critical
+        Froude after every run.</li>
+    <li><strong>Live cross-section editor</strong> — edit a ground point,
+        see the wetted area recompute under your cursor.</li>
+    <li><strong>Scripting API</strong> — Goodell-style automation, runs
+        on Mac/Linux (real HEC-RAS Controller is Windows-COM only).</li>
+    <li><strong>JSON projects</strong> — diff-friendly, email-friendly,
+        gradebook-friendly.</li>
+   </ul>
+   <p class="small">The MIT-licensed engine stays free forever. The packaged
+   app is the paid product: signed installers, updates, support, branding.
+   </p>
+  </div>
+  <div>
+   <img src="img/profile.png" alt="Water-surface profile example">
+   <p class="small" style="margin-top:.4rem">Five-section sub-critical
+   profile, solved in 18 ms. Thalweg, water surface, energy grade line,
+   and critical WSE in one chart.</p>
+  </div>
+ </div>
+ <div class="footer"><span>Solution</span><span>3 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  4. DEMO SCREEN
+=================================================================== -->
+<section class="slide">
+ <h2>Demo · cross-section editor + auto-flagged Froude</h2>
+ <div class="grid2">
+   <div>
+    <img src="img/xs.png" alt="Cross section editor">
+   </div>
+   <div>
+    <p>Edit any (station, elevation) point; the plot, wetted area, top width,
+    and hydraulic radius update on every keystroke. After a profile run, the
+    companion's post-run summary highlights:</p>
+    <ul>
+     <li><span class="ok">Healthy</span> — all sections converged, regime
+       consistent.</li>
+     <li><span class="warn">Near-critical Froude (|Fr − 1| &lt; 0.05)</span>
+       — flagged with the explanation of why mixed-flow analysis would be
+       safer.</li>
+     <li><span class="warn">Velocity &gt; 3 m/s</span> — likely bank
+       erosion; suggests rip-rap or grass-lining design pages.</li>
+    </ul>
+    <p class="small">Every flag is a deterministic rule with a textbook
+    citation, not a language-model hallucination.</p>
+   </div>
+ </div>
+ <div class="footer"><span>Demo</span><span>4 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  5. MARKET
+=================================================================== -->
+<section class="slide">
+ <h2>Market</h2>
+ <div class="grid3">
+  <div class="card">
+   <h3>Reachable</h3>
+   <div class="big">~85k</div>
+   <p class="small">Hydraulics students &amp; junior engineers, English-speaking,
+   per academic year (US/CA/UK/AU/IN extrapolated from ASCE / ICE membership
+   and intro-water-resources enrollment estimates).</p>
+  </div>
+  <div class="card">
+   <h3>Serviceable</h3>
+   <div class="big">~5k</div>
+   <p class="small">Realistic 1-year paid-conversion ceiling at $29.99
+   without paid acquisition — 1–2% of reachable, matching analogous
+   open-core + paid-app niches (HazardLab, EditorConfig Pro).</p>
+  </div>
+  <div class="card">
+   <h3>Anchor</h3>
+   <div class="big">~120</div>
+   <p class="small">Civil-engineering departments worldwide that
+   <em>routinely</em> assign HEC-RAS in undergrad water-resources courses —
+   our beachhead for the classroom tier.</p>
+  </div>
+ </div>
+ <p class="caveat" style="margin-top:1rem">
+ Honest framing: this is a <strong>niche education tool</strong>, not a
+ venture-scale market. Plan reflects that. Upside comes from adjacency
+ expansion (drainage, irrigation, stormwater), not from buying a market
+ that doesn't exist.</p>
+ <div class="footer"><span>Market</span><span>5 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  6. PRODUCT TIERS
+=================================================================== -->
+<section class="slide">
+ <h2>Product tiers (pricing already in code)</h2>
+ <table>
+  <thead><tr>
+   <th>Tier</th><th>Price</th><th>For</th><th>Net per sale</th>
+  </tr></thead>
+  <tbody>
+   <tr><td><strong>Source</strong></td><td>Free (MIT)</td>
+    <td>Anyone — engine, build-from-source.</td><td class="num">—</td></tr>
+   <tr><td><strong>App</strong> (one-time)</td><td>$29.99</td>
+    <td>Junior engineers, working pros, hobbyists.</td><td class="num">~$25</td></tr>
+   <tr><td><strong>Student / Educator</strong></td><td>$14.99</td>
+    <td>.edu / GitHub Education verified.</td><td class="num">~$13</td></tr>
+   <tr><td><strong>Classroom</strong> (annual)</td><td>$199 / yr · 30 seats</td>
+    <td>Departments; branded headers, exercise pack.</td><td class="num">~$170</td></tr>
+   <tr><td><strong>Pro</strong> (v2)</td><td>$79 one-time</td>
+    <td>Batch automation UI, advanced reports.</td><td class="num">~$67</td></tr>
+  </tbody>
+ </table>
+ <p class="small" style="margin-top:1rem">
+  Net assumes Microsoft Store (15%) or Paddle (~5% + fees). Tiers, prices,
+  and feature gates already live in <code>mirrorz/admin.py</code> —
+  the storefront only needs a working key-issuance step.</p>
+ <div class="footer"><span>Tiers</span><span>6 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  7. WHY NOW
+=================================================================== -->
+<section class="slide">
+ <h2>Why now</h2>
+ <div class="grid2">
+  <div>
+   <ul>
+    <li><strong>HEC-RAS 6.x</strong> shipped its first cross-platform-friendly
+        push (Mac/Linux via container) — Mac-first classrooms are looking
+        for native alternatives.</li>
+    <li><strong>App-store small-business rates (15%)</strong> across Apple
+        and Microsoft make sub-$50 desktop software economically viable
+        again.</li>
+    <li><strong>Climate-adaptation curriculum</strong> mandates added at
+        ABET-accredited programs since 2024 increased hydraulics teaching
+        load — instructors are hunting for friendlier tools.</li>
+    <li><strong>Python ubiquity</strong> in CE programs means our scripting
+        API has a class of users it didn't five years ago.</li>
+   </ul>
+  </div>
+  <div>
+   <h3>What is genuinely new</h3>
+   <p>No competitor ships a $30, Mac-native, "explain the math at every step"
+   hydraulics app. The space exists because:</p>
+   <ul>
+    <li>HEC-RAS is so dominant nobody bothered to teach <em>through</em> it.</li>
+    <li>Pricing the niche correctly (textbook-chapter, not engineering-tool)
+        is contrarian — easy to dismiss, hard to compete with from above.</li>
+   </ul>
+  </div>
+ </div>
+ <div class="footer"><span>Why now</span><span>7 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  8. TRACTION (be honest)
+=================================================================== -->
+<section class="slide">
+ <h2>Where we are today</h2>
+ <div class="grid2">
+  <div>
+   <ul>
+    <li><span class="ok">✓</span> Working solver (1-D steady,
+       standard-step), Tk GUI, companion wizard, scripting API.</li>
+    <li><span class="ok">✓</span> Tests green (27/27), example projects,
+       tutorial.</li>
+    <li><span class="ok">✓</span> Packaging kit ready: macOS DMG /
+       Windows MSI / Linux tarball — one command per platform.</li>
+    <li><span class="ok">✓</span> Edition + license + theme system,
+       gated paid features, branding for classroom edition.</li>
+    <li><span class="warn">↻</span> Product rename, storefront wiring,
+       legal docs (templates ready), code-signing certs.</li>
+    <li><span class="warn">↻</span> Public soft launch — Hacker News
+       "Show HN", r/civilengineering post, two professor outreach
+       emails. Cost: <strong>$0</strong>.</li>
+   </ul>
+  </div>
+  <div class="card">
+   <h3>Pre-revenue, intentionally</h3>
+   <p>We have not asked for money yet — the deck reflects realistic
+   conversion math, not optimistic spreadsheet trees. We are <strong>30
+   days from first paid customer</strong> on the plan in slide 10.</p>
+  </div>
+ </div>
+ <div class="footer"><span>Status</span><span>8 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  9. FINANCIALS - BASELINE
+=================================================================== -->
+<section class="slide">
+ <h2>Year-1 &amp; Year-2 projection — <span class="muted">baseline</span></h2>
+ <table>
+  <thead><tr>
+   <th>Quarter</th><th>Units sold</th><th>ARPU (net)</th>
+   <th>Revenue</th><th>Cumulative</th>
+  </tr></thead>
+  <tbody>
+   <tr><td>Y1 Q1</td><td class="num">40</td><td class="num">$22</td>
+       <td class="num">$880</td><td class="num">$880</td></tr>
+   <tr><td>Y1 Q2</td><td class="num">90</td><td class="num">$22</td>
+       <td class="num">$1,980</td><td class="num">$2,860</td></tr>
+   <tr><td>Y1 Q3</td><td class="num">180</td><td class="num">$22</td>
+       <td class="num">$3,960</td><td class="num">$6,820</td></tr>
+   <tr><td>Y1 Q4</td><td class="num">280</td><td class="num">$24</td>
+       <td class="num">$6,720</td><td class="num">$13,540</td></tr>
+   <tr><td><strong>Y2 (full)</strong></td><td class="num"><strong>1,800</strong></td>
+       <td class="num"><strong>$26</strong></td>
+       <td class="num"><strong>$46,800</strong></td>
+       <td class="num"><strong>$60,340</strong></td></tr>
+  </tbody>
+ </table>
+ <p class="small">Assumes content marketing only (1 tutorial / month), no
+ paid ads, no salaried staff. Y2 ARPU rises with classroom tier mix
+ (5 departments × $199 = $1k baked in). Full model in
+ <code>docs/earnings_projection.md</code>.</p>
+ <div class="footer"><span>Financials</span><span>9 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  10. FINANCIALS - MUSK-MODE
+=================================================================== -->
+<section class="slide">
+ <h2>"Musk-mode" projection — <span class="warn">aggressive</span></h2>
+ <p>What it would take to hit a real revenue number on hydraulics-niche
+ economics. Strategy: <strong>premium first → loud public roadmap →
+ verified-instructor viral loop → adjacent vertical (storm sewer / culvert
+ sizing)</strong>.</p>
+ <table>
+  <thead><tr>
+   <th>Quarter</th><th>Triggers</th><th>Units</th><th>Revenue</th>
+  </tr></thead>
+  <tbody>
+   <tr><td>Y1 Q1</td>
+       <td>Launch tweet + HN front page + 1 viral demo video</td>
+       <td class="num">300</td><td class="num">$7,500</td></tr>
+   <tr><td>Y1 Q2</td>
+       <td>"Free for verified instructors" + 10 dept pilots</td>
+       <td class="num">800</td><td class="num">$22,000</td></tr>
+   <tr><td>Y1 Q3</td>
+       <td>Pro tier ships + first paid podcast tour</td>
+       <td class="num">1,400</td><td class="num">$45,000</td></tr>
+   <tr><td>Y1 Q4</td>
+       <td>15 classrooms + Microsoft Store featured "made for education"</td>
+       <td class="num">2,200</td><td class="num">$70,500</td></tr>
+   <tr><td><strong>Y1 total</strong></td><td></td>
+       <td class="num"><strong>4,700</strong></td>
+       <td class="num warn"><strong>~$145,000</strong></td></tr>
+   <tr><td><strong>Y2 (storm-sewer expansion)</strong></td>
+       <td>Adjacent vertical lights up, 50 classrooms</td>
+       <td class="num"><strong>12,000</strong></td>
+       <td class="num warn"><strong>~$430,000</strong></td></tr>
+  </tbody>
+ </table>
+ <p class="caveat"><strong>Honest caveat:</strong> Musk-mode requires a
+ viral moment, a charismatic public face, and a willingness to ship loudly.
+ Two of those are not free. Probability we hit it: ~15%. Probability we hit
+ the baseline above: ~70%. Expected value sits in between.</p>
+ <div class="footer"><span>Musk-mode</span><span>10 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  11. RISKS
+=================================================================== -->
+<section class="slide">
+ <h2>Risks &amp; how we address them</h2>
+ <div class="grid2">
+  <div class="card">
+   <h3>Trademark / naming</h3>
+   <p>USACE owns "HEC-RAS"; selling a paid product with "Hecras" in the
+   name invites store rejection.</p>
+   <p class="small"><strong>Mitigation:</strong> rename before launch
+   (one constant in <code>mirrorz/__init__.py</code>); candidates:
+   <em>ChannelMirror, OpenReach, RiverStep, FlowProfile Studio</em>.</p>
+  </div>
+  <div class="card">
+   <h3>Engineering liability</h3>
+   <p>If marketed for design (not learning) we inherit professional-
+   liability costs no $30 tool can carry.</p>
+   <p class="small"><strong>Mitigation:</strong> EULA + in-app banner
+   already state "educational, not for regulatory or life-safety
+   engineering." Marketing copy uses verbs <em>learn / explore</em>.</p>
+  </div>
+  <div class="card">
+   <h3>Free competition (HEC-RAS itself)</h3>
+   <p>Our competition is literally free. Why pay?</p>
+   <p class="small"><strong>Mitigation:</strong> we don't try to replace
+   HEC-RAS. We sell <em>understanding it</em> — and a clean Mac/Linux
+   experience HEC-RAS does not provide.</p>
+  </div>
+  <div class="card">
+   <h3>Niche ceiling</h3>
+   <p>Honest cap is single-digit thousands of paid users.</p>
+   <p class="small"><strong>Mitigation:</strong> kept costs near zero
+   (no staff, no servers, no ads). Profitable at small scale.</p>
+  </div>
+ </div>
+ <div class="footer"><span>Risks</span><span>11 / 12</span></div>
+</section>
+
+<!-- ===================================================================
+  12. ASK / CTA
+=================================================================== -->
+<section class="slide">
+ <h2>The ask</h2>
+ <div class="grid2">
+  <div>
+   <p>This is a <strong>self-funded, indie-scale project</strong>. The right
+   asks are not money:</p>
+   <ul>
+    <li>An <strong>introduction</strong> to a hydraulics professor willing
+        to pilot the classroom tier in fall semester.</li>
+    <li>A <strong>boost</strong> when the Show-HN goes live.</li>
+    <li>A code review on the <strong>standard-step solver</strong> from any
+        PE who teaches hydraulics — accuracy is the entire moat.</li>
+    <li>Feedback on the <strong>renamed brand</strong> shortlist.</li>
+   </ul>
+   <p class="small">If — and only if — Musk-mode Q4 milestones hit, we'd
+   consider a small angel round (≤$100k) to fund the storm-sewer vertical
+   expansion. Today's deck does not ask for it.</p>
+  </div>
+  <div class="card">
+   <h3>Get in touch</h3>
+   <p>[Founder Name]<br>
+   [email]<br>
+   [website / repo]</p>
+   <p class="small">Deck and full earnings model are checked in to the
+   repo at <code>docs/deck/pitch.html</code> and
+   <code>docs/earnings_projection.md</code>.</p>
+  </div>
+ </div>
+ <div class="footer"><span>Ask</span><span>12 / 12</span></div>
+</section>
+
+<div class="hint">← / → · space to advance · "p" prints all slides</div>
+<div class="nav" id="nav">1 / 12</div>
+
+<script>
+ // Tiny slide controller; no framework. We treat the page as a stack of
+ // <section class="slide"> elements and toggle a single ".show" class.
+ const slides = [...document.querySelectorAll('.slide')];
+ const nav = document.getElementById('nav');
+ const prog = document.getElementById('prog');
+ let i = 0;
+ function show(n){
+   i = Math.max(0, Math.min(slides.length - 1, n));
+   slides.forEach((s, k) => s.classList.toggle('show', k === i));
+   nav.textContent = `${i+1} / ${slides.length}`;
+   prog.style.width = `${((i+1)/slides.length)*100}%`;
+   history.replaceState(null, '', '#' + (i+1));
+ }
+ document.addEventListener('keydown', e => {
+   if (['ArrowRight',' ','PageDown'].includes(e.key)) show(i+1);
+   else if (['ArrowLeft','PageUp'].includes(e.key))   show(i-1);
+   else if (e.key === 'Home') show(0);
+   else if (e.key === 'End')  show(slides.length-1);
+   else if (e.key === 'p')    window.print();
+ });
+ document.addEventListener('click', e => {
+   // Click right half advances, left half retreats - presenter-friendly.
+   if (e.target.tagName === 'A') return;
+   show(e.clientX > window.innerWidth / 2 ? i + 1 : i - 1);
+ });
+ // Deep link: opening #5 jumps to slide 5.
+ const start = parseInt(location.hash.slice(1), 10);
+ show((start && !isNaN(start)) ? start - 1 : 0);
+</script>
+</body>
+</html>

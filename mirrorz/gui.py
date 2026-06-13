@@ -50,6 +50,7 @@ from .project import Project, FlowPlan, default_project
 from .geometry import CrossSection, Reach
 from .solver import solve_profile, ProfileResult, clear_critical_cache
 from .settings import AppSettings
+from .admin import AdminState, EDITIONS, THEMES, EDITION_PRICES
 from . import plotting as pl
 from . import companion as helper
 from . import analyzer
@@ -75,6 +76,10 @@ class App(tk.Tk):
         # before the default project (which solves normal depth) is built.
         self.settings = AppSettings.load()
         self.settings.apply()
+        # Admin state (edition, theme, branding) - separate file so personal
+        # design choices don't pollute project portability.
+        self.admin = AdminState.load()
+        pl.apply_palette(self.admin.palette(), self.admin.header_caption())
         self.geometry(self.settings.window_geometry or WINDOW_SIZE)
         # Save settings (incl. window geometry) when the window closes.
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -168,6 +173,7 @@ class App(tk.Tk):
         self.tab_profile  = ttk.Frame(nb); nb.add(self.tab_profile, text="Profile")
         self.tab_summary  = ttk.Frame(nb); nb.add(self.tab_summary, text="Summary")
         self.tab_helper   = ttk.Frame(nb); nb.add(self.tab_helper,  text="Companion")
+        self.tab_admin    = ttk.Frame(nb); nb.add(self.tab_admin,   text="Admin")
         root.add(nb, weight=4)
         self.nb = nb
 
@@ -175,6 +181,7 @@ class App(tk.Tk):
         self._build_profile_tab()
         self._build_summary_tab()
         self._build_helper_tab()
+        self._build_admin_tab()
 
     # ---------------- Cross-section tab ---------------------------------------
     def _build_xs_tab(self) -> None:
@@ -250,6 +257,165 @@ class App(tk.Tk):
             ttk.Button(btn, text=topic, command=lambda t=topic: self._explain(t))\
                 .pack(side=tk.LEFT, padx=2)
         btn.pack(side=tk.BOTTOM, fill=tk.X)
+
+    # ---------------- Admin tab -----------------------------------------------
+    # The admin tab is a vertically-stacked stack of LabelFrame "cards":
+    #   1. Edition + License        -> commercial gating, telemetry consent
+    #   2. Design Choices (Theme)   -> palette picker with live preview
+    #   3. Branding (Classroom)     -> institution/instructor/course strings
+    #   4. About                    -> version, config dir, legal links
+    # Cards keep each concern visually self-contained.
+    def _build_admin_tab(self) -> None:
+        wrap = ttk.Frame(self.tab_admin, padding=12)
+        wrap.pack(fill=tk.BOTH, expand=True)
+
+        # -- 1. Edition card -------------------------------------------------
+        ed = ttk.LabelFrame(wrap, text="Edition & License", padding=8)
+        ed.pack(fill=tk.X, pady=(0, 8))
+        ttk.Label(ed, text=f"Current edition: ").grid(row=0, column=0, sticky="w")
+        self._edition_label = ttk.Label(ed, text="—", font=("Helvetica", 11, "bold"))
+        self._edition_label.grid(row=0, column=1, sticky="w")
+        # Prices shown for transparency - users can see what each unlocks
+        # without leaving the app, which improves conversion.
+        for r, (eid, blurb) in enumerate(EDITION_PRICES.items(), start=1):
+            ttk.Label(ed, text=f"  • {eid}:", foreground="#555")\
+                .grid(row=r, column=0, sticky="w")
+            ttk.Label(ed, text=blurb, foreground="#555")\
+                .grid(row=r, column=1, sticky="w")
+
+        key_row = ttk.Frame(ed)
+        key_row.grid(row=len(EDITION_PRICES)+1, column=0, columnspan=3,
+                     sticky="we", pady=(8, 0))
+        ttk.Label(key_row, text="License key:").pack(side=tk.LEFT)
+        self.license_var = tk.StringVar(value=self.admin.license_key)
+        ttk.Entry(key_row, textvariable=self.license_var, width=22)\
+            .pack(side=tk.LEFT, padx=4)
+        ttk.Button(key_row, text="Activate",   command=self._activate_license)\
+            .pack(side=tk.LEFT)
+        ttk.Button(key_row, text="Deactivate", command=self._deactivate_license)\
+            .pack(side=tk.LEFT, padx=4)
+        ttk.Button(key_row, text="Buy…",       command=self._open_buy_link)\
+            .pack(side=tk.LEFT)
+        self._license_status = ttk.Label(ed, text="", foreground="#0a7")
+        self._license_status.grid(row=len(EDITION_PRICES)+2, column=0,
+                                  columnspan=3, sticky="w")
+
+        # -- 2. Design choices -----------------------------------------------
+        th = ttk.LabelFrame(wrap, text="Design Choices (Theme)", padding=8)
+        th.pack(fill=tk.X, pady=(0, 8))
+        ttk.Label(th, text="Plot theme:").grid(row=0, column=0, sticky="w")
+        self.theme_var = tk.StringVar(value=self.admin.theme)
+        cb = ttk.Combobox(th, textvariable=self.theme_var, state="readonly",
+                          values=list(THEMES.keys()), width=14)
+        cb.grid(row=0, column=1, sticky="w", padx=6)
+        cb.bind("<<ComboboxSelected>>", lambda e: self._apply_theme())
+        ttk.Label(th, text="(applies on next plot redraw)",
+                  foreground="#777").grid(row=0, column=2, sticky="w")
+
+        # -- 3. Branding (classroom edition only - widgets stay disabled
+        #    until the user activates a classroom license) ------------------
+        br = ttk.LabelFrame(wrap, text="Classroom Branding", padding=8)
+        br.pack(fill=tk.X, pady=(0, 8))
+        self.brand_institution = tk.StringVar(value=self.admin.institution)
+        self.brand_instructor  = tk.StringVar(value=self.admin.instructor)
+        self.brand_course      = tk.StringVar(value=self.admin.course_code)
+        rows = (("Institution:", self.brand_institution),
+                ("Instructor:",  self.brand_instructor),
+                ("Course code:", self.brand_course))
+        self._brand_entries = []
+        for r, (label, var) in enumerate(rows):
+            ttk.Label(br, text=label).grid(row=r, column=0, sticky="w", pady=2)
+            e = ttk.Entry(br, textvariable=var, width=36)
+            e.grid(row=r, column=1, sticky="w", padx=4)
+            self._brand_entries.append(e)
+        ttk.Button(br, text="Apply Branding",
+                   command=self._apply_branding).grid(row=len(rows), column=1,
+                                                       sticky="w", pady=(6,0))
+        self._brand_locked_lbl = ttk.Label(br, text="", foreground="#a60")
+        self._brand_locked_lbl.grid(row=len(rows)+1, column=0, columnspan=2,
+                                     sticky="w")
+
+        # -- 4. Telemetry consent (default OFF, even with the toggle) -------
+        tel = ttk.LabelFrame(wrap, text="Privacy", padding=8)
+        tel.pack(fill=tk.X, pady=(0, 8))
+        self.tel_var = tk.BooleanVar(value=self.admin.telemetry_optin)
+        ttk.Checkbutton(tel, variable=self.tel_var,
+            text="Anonymous usage analytics (currently does NOTHING - "
+                 "we have no endpoint; consent is stored for the future)",
+            command=self._save_telemetry).pack(anchor="w")
+
+        # -- 5. About / legal links -----------------------------------------
+        ab = ttk.LabelFrame(wrap, text="About", padding=8)
+        ab.pack(fill=tk.X, pady=(0, 8))
+        from .settings import config_dir
+        ttk.Label(ab, text=f"Version: {__version__}").pack(anchor="w")
+        ttk.Label(ab, text=f"Config:  {config_dir()}",
+                  foreground="#555").pack(anchor="w")
+        ttk.Label(ab,
+            text="Educational tool — NOT certified for regulatory or "
+                 "life-safety engineering. See EULA.",
+            foreground="#a40", wraplength=720).pack(anchor="w", pady=(6, 0))
+
+        self._refresh_admin_view()
+
+    def _refresh_admin_view(self) -> None:
+        self._edition_label.config(text=self.admin.edition.upper())
+        # Gate branding entries by edition.
+        branding_unlocked = self.admin.feature_enabled("branding")
+        state = ("normal" if branding_unlocked else "disabled")
+        for e in self._brand_entries:
+            e.config(state=state)
+        self._brand_locked_lbl.config(
+            text="" if branding_unlocked
+                 else "Branding unlocks with the Classroom edition.")
+
+    # ---- Admin actions ---------------------------------------------------
+    def _activate_license(self) -> None:
+        msg = self.admin.apply_license_key(self.license_var.get())
+        ok = self.admin.edition != "free"
+        self._license_status.config(text=msg,
+            foreground="#0a7" if ok else "#c33")
+        self._refresh_admin_view()
+
+    def _deactivate_license(self) -> None:
+        self.admin.clear_license()
+        self.license_var.set("")
+        self._license_status.config(text="Deactivated; using Free edition.",
+                                     foreground="#555")
+        self._refresh_admin_view()
+
+    def _open_buy_link(self) -> None:
+        # We don't ship a sales URL yet (rename pending - see docs/pricing.md),
+        # so we keep the button honest and informative instead of pointing
+        # nowhere. This swaps to a real URL on launch day.
+        messagebox.showinfo("Buy",
+            "The store URL will appear here on launch.\n\n"
+            "Until then: build from source (MIT) or DM the maintainer.")
+
+    def _apply_theme(self) -> None:
+        self.admin.theme = self.theme_var.get()
+        pl.apply_palette(self.admin.palette(), self.admin.header_caption())
+        self.admin.save()
+        # Force a redraw of whatever's currently visible.
+        self._refresh_xs_plot()
+        if self.last_result is not None and self.project.reaches:
+            self.prof_ax.clear()
+            pl.profile_figure(self.last_result,
+                              self.project.reaches[0].cross_sections,
+                              ax=self.prof_ax)
+            self.prof_canvas.draw()
+
+    def _apply_branding(self) -> None:
+        self.admin.institution = self.brand_institution.get()
+        self.admin.instructor  = self.brand_instructor.get()
+        self.admin.course_code = self.brand_course.get()
+        self.admin.save()
+        pl.apply_palette(self.admin.palette(), self.admin.header_caption())
+        self._refresh_xs_plot()
+
+    def _save_telemetry(self) -> None:
+        self.admin.telemetry_optin = bool(self.tel_var.get())
+        self.admin.save()
 
     # =========================================================================
     # Project tree handling
@@ -493,6 +659,12 @@ class App(tk.Tk):
 
     def export_csv(self) -> None:
         """Write the last run's summary table to a CSV file."""
+        if not self.admin.feature_enabled("csv_export"):
+            messagebox.showinfo("Pro feature",
+                "CSV export is included with the Pro edition.\n\n"
+                "Open the Admin tab to enter a license key, or copy the "
+                "Summary tab text manually in the free edition.")
+            return
         if self.last_result is None:
             messagebox.showinfo("Run first", "Compute a profile first."); return
         path = filedialog.asksaveasfilename(defaultextension=".csv",
