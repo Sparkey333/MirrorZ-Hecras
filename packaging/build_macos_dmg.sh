@@ -21,6 +21,22 @@
 # ============================================================================
 set -euo pipefail
 
+# ----------------------------------------------------------------------------
+# 0. Pre-flight: refuse to run anywhere we know we'll fail. This script
+#    uses hdiutil and codesign (macOS-only). Catching it here gives a clear
+#    error instead of a confusing one halfway through PyInstaller.
+# ----------------------------------------------------------------------------
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo "ERROR: This script must be run on macOS (hdiutil + codesign are"
+    echo "       macOS-only). For Linux, run packaging/build_linux.sh"
+    echo "       For Windows, run packaging\\build_windows.bat on Windows."
+    exit 2
+fi
+for tool in hdiutil codesign python3; do
+    command -v "$tool" >/dev/null 2>&1 || {
+        echo "ERROR: missing required tool: $tool"; exit 2; }
+done
+
 cd "$(dirname "$0")/.."     # repo root, regardless of where invoked from
 
 APP_NAME="MirrorZ-Hecras"
@@ -30,15 +46,20 @@ APP_PATH="${DIST}/${APP_NAME}.app"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 DMG_PATH="${DIST}/${DMG_NAME}"
 
-echo "==> Building ${APP_NAME} ${VERSION} for macOS"
+echo "==> Building ${APP_NAME} ${VERSION} for macOS ($(uname -m))"
 
 # ----------------------------------------------------------------------------
-# 1. Fresh virtualenv keeps the bundle free of stray site-packages.
+# 1. Build-time virtualenv. We install ONLY the build tools (PyInstaller +
+#    Pillow) plus the runtime deps from requirements.txt - no editable
+#    install of the project itself, which keeps stray .egg-info / build
+#    artifacts out of the frozen app.
 # ----------------------------------------------------------------------------
 python3 -m venv .build-venv
+# shellcheck source=/dev/null
 source .build-venv/bin/activate
-pip install --upgrade pip >/dev/null
-pip install -e ".[package]" >/dev/null
+# pip upgrade is a nicety; tolerate the system-pip-protected case quietly.
+python3 -m pip install --upgrade pip >/dev/null 2>&1 || true
+python3 -m pip install -r requirements.txt pyinstaller pillow >/dev/null
 
 # ----------------------------------------------------------------------------
 # 2. Icons (no-op if already generated).
@@ -92,12 +113,25 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 7. ### TWEAK: DESKTOP_COPY ### - drop the finished DMG on the Desktop.
+# 7. ### TWEAK: DESKTOP_COPY ### - drop the finished DMG on the Desktop and
+#    report its size, plus what to do next.
 # ----------------------------------------------------------------------------
 DESKTOP="${HOME}/Desktop"
 if [[ -d "${DESKTOP}" ]]; then
     cp "${DMG_PATH}" "${DESKTOP}/"
-    echo "==> DONE: ${DESKTOP}/${DMG_NAME}"
+    FINAL="${DESKTOP}/${DMG_NAME}"
 else
-    echo "==> DONE: ${DMG_PATH}"
+    FINAL="${DMG_PATH}"
+fi
+SIZE_HUMAN="$(du -h "${FINAL}" | cut -f1)"
+
+echo ""
+echo "==> DONE: ${FINAL}  (${SIZE_HUMAN})"
+if [[ "${SIGN_ID}" == "-" ]]; then
+    echo ""
+    echo "    NOTE: this is an AD-HOC SIGNED build (no Developer ID)."
+    echo "    First-launch on someone else's Mac will need:"
+    echo "      right-click the app -> Open -> confirm in the dialog."
+    echo "    For distribution, set CODESIGN_ID + NOTARY_PROFILE and"
+    echo "    re-run this script."
 fi

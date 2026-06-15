@@ -55,10 +55,18 @@ a = Analysis(
     # ### TWEAK: EXCLUDES ### - strip heavyweight things we never import.
     # Each exclusion shaves megabytes off the installer. If a future feature
     # starts importing one of these, REMOVE it from this list.
+    #
+    # scipy is the big one: ~73 MB bundled, and we only use one function
+    # (scipy.optimize.brentq) for root-finding. mirrorz/hydraulics.py ships
+    # a pure-Python bisection fallback that produces identical answers
+    # within tolerance. The frozen build uses the fallback; source installs
+    # that have scipy still use brentq for the small speed win.
     excludes=[
+        "scipy",                # ~73 MB - use bisection fallback instead
         "pytest", "setuptools", "pip",
-        "matplotlib.tests", "numpy.tests", "scipy.spatial.cKDTree",
-        "IPython", "jupyter",
+        "IPython", "jupyter", "notebook",
+        "PyQt5", "PyQt6", "PySide2", "PySide6",  # we use Tk, not Qt
+        "sphinx", "babel", "lib2to3",
     ],
     noarchive=False,
 )
