@@ -39,6 +39,13 @@ python main.py --run examples/simple_channel.json
 python main.py --cli
 ```
 
+## Combining the book + USACE materials
+
+See **[`docs/FORWARD_PLAN.md`](docs/FORWARD_PLAN.md)** for how this repo connects to
+*Breaking the HEC-RAS Code*, HEC-RAS installers, and example projects (including
+the local Downloads sync into gitignored `docs/reference/`). Cloud agents: start
+with [`AGENTS.md`](AGENTS.md).
+
 ## Scripting / automation (new in 0.2)
 
 The `Controller` class mirrors the automation workflow popularized by

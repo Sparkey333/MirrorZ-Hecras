@@ -8,8 +8,11 @@ __pycache__/
 # PyInstaller outputs
 build/
 dist/
-# Local reference material (copyrighted PDFs etc.) - never commit these.
-docs/reference/
+# Local reference material (copyrighted PDFs, USACE installers, raw
+# HEC-RAS example trees, etc.) — never commit these to a public repo.
+# Keep the README tracked so agents know the layout.
+docs/reference/**
+!docs/reference/README.md
 .ipynb_checkpoints/
 .mypy_cache/
 .pytest_cache/
