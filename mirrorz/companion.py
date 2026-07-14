@@ -123,20 +123,34 @@ _EXPLAIN = {
 
 def welcome() -> str:
     """Splash message shown the first time the GUI opens."""
+    from .resources import KEY_SITES
+
+    hec = KEY_SITES[2][1]          # HEC-RAS home
+    github = KEY_SITES[0][1]
+    ras_sol = KEY_SITES[5][1]
     return (
         "Welcome to MirrorZ-Hecras!\n\n"
-        "This is an educational mirror of HEC-RAS concepts: 1D steady-flow "
-        "hydraulics, the standard-step method, and open-channel geometry. "
-        "Everything here is inspectable Python you can read and tweak.\n\n"
-        "Suggested first steps:\n"
-        "  1. File -> New Project (starts from a default trapezoidal stream)\n"
-        "  2. Open the Cross-Section tab and change a point to see the area\n"
-        "     update in real time.\n"
-        "  3. Run -> Compute Profile and view the water surface plot.\n"
-        "  4. Ask the Companion to Explain any term you don't recognize.\n\n"
-        "Nothing in this tool is certified for regulatory work - use real "
-        "HEC-RAS for anything that matters to a permit or a levee."
+        "Educational 1-D steady-flow mirror of HEC-RAS ideas — readable "
+        "Python, Companion tips, and a Goodell-style Controller API.\n\n"
+        "In-app first run:\n"
+        "  1. File → Open… → examples/beaver_creek.json (or New Project)\n"
+        "  2. Cross-Section tab — edit a ground point; plot refreshes\n"
+        "  3. Run → Compute Profile — read the water-surface plot\n"
+        "  4. Help → Getting Started… for Mac DMG + key site URLs\n"
+        "  5. Help → Key Sites… to open HEC-RAS / GitHub / Higgsfield\n\n"
+        "Key URLs:\n"
+        f"  • Project:  {github}\n"
+        f"  • HEC-RAS:  {hec}\n"
+        f"  • Book/blog:{ras_sol}\n\n"
+        "Not certified for regulatory work — use official HEC-RAS for "
+        "permits and life-safety design."
     )
+
+
+def getting_started() -> str:
+    """Full numbered Mac workflow + link list (Help → Getting Started)."""
+    from .resources import getting_started_text
+    return getting_started_text()
 
 
 def explain(topic: str) -> str:

@@ -7,7 +7,7 @@ MirrorZ-Hecras-<version>.dmg
 MirrorZ-Hecras-<version>.dmg.sha256
 ```
 
-The landing page (`../index.html`) links to `MirrorZ-Hecras-0.5.0.dmg`.
+The landing page (`../index.html`) links to `MirrorZ-Hecras-0.5.1.dmg`.
 
 ## Why the DMG is missing in cloud agents
 

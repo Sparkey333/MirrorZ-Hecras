@@ -2,7 +2,7 @@
 
 Open **`index.html`** in a browser. The primary CTA downloads:
 
-`downloads/MirrorZ-Hecras-0.5.0.dmg`
+`downloads/MirrorZ-Hecras-0.5.1.dmg`
 
 ## Produce the DMG (must be a Mac)
 

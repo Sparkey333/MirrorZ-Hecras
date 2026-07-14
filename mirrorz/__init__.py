@@ -21,7 +21,7 @@
 # Single source of truth for the version: pyproject.toml reads it from here,
 # the GUI title shows it, and the packaging scripts stamp it into the DMG /
 # installer file names. Bump it in exactly one place - this one.
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 __author__ = "MirrorZ-Hecras contributors"
 
 # Friendly app-store-facing name (used by packaging and the GUI title).

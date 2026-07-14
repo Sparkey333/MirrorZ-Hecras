@@ -16,8 +16,8 @@
 #     bash packaging/build_macos_dmg.sh
 #
 # HIGHLIGHTED TWEAK AREAS
-#   ### TWEAK: DESKTOP_COPY ###  where the final DMG lands
-#   ### TWEAK: DMG_LOOK ###      volume name / layout of the DMG window
+#   ### TWEAK: DOWNLOADS_COPY ###  final DMG always → ~/Downloads (+ open)
+#   ### TWEAK: DMG_LOOK ###       volume name / layout of the DMG window
 # ============================================================================
 set -euo pipefail
 
@@ -113,32 +113,23 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 7. ### TWEAK: DESKTOP_COPY ### - stage the finished DMG for the landing
-#    page, the user's Downloads folder, Desktop, and releases/.
+# 7. ### TWEAK: DOWNLOADS_COPY ### - ALWAYS stage to ~/Downloads on this Mac,
+#    then landing/downloads + releases. Open the DMG in Finder when done.
 # ----------------------------------------------------------------------------
 STAGE_TARGETS=()
+
+# Primary target for now: this local Mac's Downloads folder.
+DOWNLOADS="${HOME}/Downloads"
+mkdir -p "${DOWNLOADS}"
+FINAL="${DOWNLOADS}/${DMG_NAME}"
+cp "${DMG_PATH}" "${FINAL}"
+STAGE_TARGETS+=("${FINAL}")
 
 LANDING_DL="landing/downloads"
 mkdir -p "${LANDING_DL}" "releases"
 cp "${DMG_PATH}" "${LANDING_DL}/${DMG_NAME}"
 cp "${DMG_PATH}" "releases/${DMG_NAME}"
 STAGE_TARGETS+=("${LANDING_DL}/${DMG_NAME}" "releases/${DMG_NAME}")
-
-# Prefer Downloads (browser-familiar); also keep Desktop for the old habit.
-DOWNLOADS="${HOME}/Downloads"
-if [[ -d "${DOWNLOADS}" ]]; then
-    cp "${DMG_PATH}" "${DOWNLOADS}/${DMG_NAME}"
-    STAGE_TARGETS+=("${DOWNLOADS}/${DMG_NAME}")
-    FINAL="${DOWNLOADS}/${DMG_NAME}"
-else
-    FINAL="${DMG_PATH}"
-fi
-
-DESKTOP="${HOME}/Desktop"
-if [[ -d "${DESKTOP}" ]]; then
-    cp "${DMG_PATH}" "${DESKTOP}/${DMG_NAME}"
-    STAGE_TARGETS+=("${DESKTOP}/${DMG_NAME}")
-fi
 
 # Checksum next to the landing download so the page can show integrity.
 (
@@ -155,6 +146,17 @@ for p in "${STAGE_TARGETS[@]}"; do
     echo "      - ${p}"
 done
 echo "    Landing page: open landing/index.html (Download button → this DMG)"
+
+# Refresh Finder view and open the new DMG so you can drag-install immediately.
+if command -v open >/dev/null 2>&1; then
+    echo "==> Opening DMG in Finder: ${FINAL}"
+    open "${FINAL}"
+    # Also open the landing page so Download status refreshes against the new file.
+    if [[ -f "landing/index.html" ]]; then
+        open "landing/index.html"
+    fi
+fi
+
 if [[ "${SIGN_ID}" == "-" ]]; then
     echo ""
     echo "    NOTE: this is an AD-HOC SIGNED build (no Developer ID)."

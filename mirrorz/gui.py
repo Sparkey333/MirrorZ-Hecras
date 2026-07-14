@@ -34,6 +34,7 @@ navigation.
 from __future__ import annotations
 
 import os
+import webbrowser
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 from typing import List, Optional
@@ -140,6 +141,10 @@ class App(tk.Tk):
 
         help_menu = tk.Menu(menubar, tearoff=0)
         help_menu.add_command(label="Companion: Welcome",    command=self._show_welcome)
+        help_menu.add_command(label="Getting Started…",      command=self._show_getting_started)
+        help_menu.add_command(label="Key Sites…",            command=self._show_key_sites)
+        help_menu.add_command(label="Open Landing Page…",    command=self._open_landing_page)
+        help_menu.add_separator()
         help_menu.add_command(label="Explain Manning",       command=lambda: self._explain("manning"))
         help_menu.add_command(label="Explain Froude",        command=lambda: self._explain("froude"))
         help_menu.add_command(label="Explain Critical Depth",command=lambda: self._explain("critical_depth"))
@@ -253,6 +258,14 @@ class App(tk.Tk):
     def _build_helper_tab(self) -> None:
         self.helper_text = tk.Text(self.tab_helper, wrap=tk.WORD, font=("Helvetica", 11))
         self.helper_text.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        top = ttk.Frame(self.tab_helper)
+        ttk.Button(top, text="Getting Started",
+                   command=self._show_getting_started).pack(side=tk.LEFT, padx=2)
+        ttk.Button(top, text="Key Sites",
+                   command=self._show_key_sites).pack(side=tk.LEFT, padx=2)
+        ttk.Button(top, text="Landing Page",
+                   command=self._open_landing_page).pack(side=tk.LEFT, padx=2)
+        top.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 2))
         btn = ttk.Frame(self.tab_helper)
         for topic in ("manning", "froude", "critical_depth",
                       "normal_depth", "standard_step", "contraction_expansion"):
@@ -900,6 +913,61 @@ class App(tk.Tk):
         self.nb.select(self.tab_helper)
         self.helper_text.delete("1.0", tk.END)
         self.helper_text.insert(tk.END, helper.welcome())
+
+    def _show_getting_started(self) -> None:
+        self.nb.select(self.tab_helper)
+        self.helper_text.delete("1.0", tk.END)
+        self.helper_text.insert(tk.END, helper.getting_started())
+
+    def _show_key_sites(self) -> None:
+        """Dialog with one button per key URL (opens system browser)."""
+        from .resources import KEY_SITES
+        dlg = tk.Toplevel(self)
+        dlg.title("Key Sites")
+        dlg.transient(self)
+        frm = ttk.Frame(dlg, padding=12)
+        frm.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(
+            frm,
+            text="Open official and project links in your browser:",
+            wraplength=420,
+        ).pack(anchor="w", pady=(0, 8))
+        for label, url in KEY_SITES:
+            row = ttk.Frame(frm)
+            row.pack(fill=tk.X, pady=2)
+            ttk.Button(
+                row, text="Open", width=6,
+                command=lambda u=url: webbrowser.open(u),
+            ).pack(side=tk.LEFT)
+            ttk.Label(row, text=label, wraplength=360).pack(
+                side=tk.LEFT, padx=8)
+
+        ttk.Button(frm, text="Close", command=dlg.destroy)\
+            .pack(anchor="e", pady=(12, 0))
+
+    def _open_landing_page(self) -> None:
+        """Open landing/index.html from the repo (or bundled examples path)."""
+        candidates = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                         "landing", "index.html"),
+            os.path.join(os.getcwd(), "landing", "index.html"),
+        ]
+        for path in candidates:
+            if os.path.isfile(path):
+                webbrowser.open("file://" + os.path.abspath(path))
+                return
+        # Fallback: GitHub repo + Getting Started text in Companion
+        from .resources import KEY_SITES
+        webbrowser.open(KEY_SITES[0][1])
+        self._show_getting_started()
+        messagebox.showinfo(
+            "Landing page",
+            "landing/index.html was not found next to the app.\n"
+            "Opened the GitHub repo instead.\n\n"
+            "On your Mac checkout, run:\n"
+            "  open landing/index.html\n"
+            "or:\n"
+            "  bash packaging/open_landing.sh")
 
     def _explain(self, topic: str) -> None:
         self.nb.select(self.tab_helper)

@@ -46,15 +46,19 @@ See **[`docs/FORWARD_PLAN.md`](docs/FORWARD_PLAN.md)** for how this repo connect
 the local Downloads sync into gitignored `docs/reference/`). Cloud agents: start
 with [`AGENTS.md`](AGENTS.md).
 
-## Landing page + macOS DMG
+## Landing page + macOS DMG (local Mac → `~/Downloads`)
 
-Open **[`landing/index.html`](landing/index.html)** for the product page with a
-Mac download button. Build the DMG **on a Mac** (cannot cross-compile from Linux):
+**Clear steps + key URLs:** [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
+(same checklist in-app under **Help → Getting Started…** / **Key Sites…**).
+
+Open **[`landing/index.html`](landing/index.html)** for the product page.
+Build the DMG **on this Mac** (cannot cross-compile from Linux):
 
 ```bash
 bash packaging/build_macos_dmg.sh
-# → ~/Downloads/MirrorZ-Hecras-<ver>.dmg
-# → landing/downloads/  (linked by the page)
+# → ALWAYS ~/Downloads/MirrorZ-Hecras-<ver>.dmg
+# → opens the DMG + landing/index.html
+# → also copies to landing/downloads/ (Download button)
 ```
 
 Or run the GitHub Actions workflow `.github/workflows/macos-dmg.yml`.

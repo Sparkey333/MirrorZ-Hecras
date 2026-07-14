@@ -199,6 +199,59 @@ footer {
   border-top: 1px solid rgba(215,230,223,0.12);
 }
 footer a { text-decoration: underline; text-underline-offset: 3px; }
+
+.steps {
+  margin: 1.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  max-width: 48rem;
+}
+.steps li {
+  position: relative;
+  counter-increment: step;
+  padding: 0.85rem 0 0.85rem 2.6rem;
+  border-bottom: 1px solid rgba(215,230,223,0.14);
+  color: var(--mist);
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0.85rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  background: rgba(232,244,239,0.12);
+  color: var(--foam);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: grid;
+  place-items: center;
+}
+.steps strong { color: var(--foam); display: block; margin-bottom: 0.2rem; }
+.steps code, .meta code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.86em;
+  color: #e8f4ef;
+  word-break: break-word;
+}
+.steps a { color: #9fd6c8; text-underline-offset: 3px; }
+.links {
+  margin: 1.2rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: 48rem;
+}
+.links li {
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(215,230,223,0.12);
+  color: var(--mist);
+  line-height: 1.4;
+}
+.links a { color: #9fd6c8; text-decoration: underline; text-underline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -209,9 +262,9 @@ footer a { text-decoration: underline; text-underline-offset: 3px; }
       <h1 class="brand">MirrorZ<span>Hecras</span></h1>
       <p class="lede">Read every step of a 1-D steady water-surface profile — the open educational mirror of HEC-RAS ideas, without the black box.</p>
       <div class="cta-row">
-        <a class="btn btn--primary" id="download-dmg" href="downloads/MirrorZ-Hecras-0.5.0.dmg">
+        <a class="btn btn--primary" id="download-dmg" href="downloads/MirrorZ-Hecras-0.5.1.dmg">
           Download for Mac
-          <small>DMG · v0.5.0</small>
+          <small>DMG · v0.5.1</small>
         </a>
         <a class="btn btn--ghost" href="https://github.com/Sparkey333/MirrorZ-Hecras">View source</a>
       </div>
@@ -220,6 +273,42 @@ footer a { text-decoration: underline; text-underline-offset: 3px; }
   </header>
 
   <div class="band">
+    <section>
+      <h2>Start here — local Mac</h2>
+      <p>DMG always lands in <code>~/Downloads</code> for now. Build, open, install.</p>
+      <ol class="steps">
+        <li>
+          <strong>Get the code</strong>
+          <code>git clone https://github.com/Sparkey333/MirrorZ-Hecras.git && cd MirrorZ-Hecras</code>
+          · <a href="https://github.com/Sparkey333/MirrorZ-Hecras/pull/2">PR #2</a>
+        </li>
+        <li>
+          <strong>Optional — sync private materials</strong>
+          <code>./scripts/sync_local_reference.sh "/Users/ansom/Downloads/HECRAS-Breaking Hecras Code"</code>
+        </li>
+        <li>
+          <strong>Dev env</strong>
+          <code>bash scripts/install_dev.sh && source .venv/bin/activate && pytest -q</code>
+        </li>
+        <li>
+          <strong>Build DMG → Downloads + open</strong>
+          <code>bash packaging/build_macos_dmg.sh</code>
+          writes <code>~/Downloads/MirrorZ-Hecras-0.5.1.dmg</code>, opens the DMG, opens this page.
+        </li>
+        <li>
+          <strong>Install</strong>
+          Drag the app into Applications. Gatekeeper: right-click → Open → Open.
+        </li>
+        <li>
+          <strong>First model</strong>
+          In the app: File → Open → <code>examples/beaver_creek.json</code> → Run → Compute Profile.
+          Help → Getting Started… / Key Sites… for the same checklist with live links.
+        </li>
+      </ol>
+    </section>
+  </div>
+
+  <div class="band--alt">
     <section class="split">
       <div>
         <h2>Compute a profile. Inspect the math.</h2>
@@ -229,16 +318,29 @@ footer a { text-decoration: underline; text-underline-offset: 3px; }
     </section>
   </div>
 
-  <div class="band--alt">
+  <div class="band">
     <section>
-      <h2>Automate like the book teaches</h2>
-      <p>A Goodell-style controller — open project, compute plan, read node outputs, sweep roughness or discharge — in plain Python. No Windows COM required.</p>
+      <h2>Key sites</h2>
+      <p>Official HEC-RAS, the automation book trail, this repo, and asset tools.</p>
+      <ul class="links">
+        <li><a href="https://github.com/Sparkey333/MirrorZ-Hecras">MirrorZ GitHub</a> — this project</li>
+        <li><a href="https://github.com/Sparkey333/MirrorZ-Hecras/pull/2">Pull request #2</a> — engine + landing + v0.5</li>
+        <li><a href="https://www.hec.usace.army.mil/software/hec-ras/">HEC-RAS home</a> — USACE download &amp; docs</li>
+        <li><a href="https://www.hec.usace.army.mil/software/hec-ras/2025/">HEC-RAS 2025</a> — next-gen alpha</li>
+        <li><a href="https://www.hec.usace.army.mil/software/hec-ras/documentation.aspx">HEC-RAS documentation</a></li>
+        <li><a href="https://therassolution.kleinschmidtgroup.com/">The RAS Solution</a> — Breaking the HEC-RAS Code trail</li>
+        <li><a href="http://hecrasmodel.blogspot.com/2014/10/automating-hec-ras.html">Automating HEC-RAS</a> — classic COM intro</li>
+        <li><a href="https://higgsfield.ai/">Higgsfield AI</a> · <a href="https://higgsfield.ai/ai-video">video studio</a> — hero / launch clips</li>
+        <li><a href="https://www.civilgeo.com/">CivilGEO GeoHECRAS</a> — commercial alternative</li>
+        <li><a href="../docs/GETTING_STARTED.md">docs/GETTING_STARTED.md</a> · <a href="../docs/competitive_landscape.md">competitive landscape</a> · <a href="../docs/assets/higgsfield_prompts.md">Higgsfield prompts</a></li>
+      </ul>
     </section>
   </div>
 
   <footer>
     Educational software. Not certified for regulatory floodplain work.
     · <a href="https://github.com/Sparkey333/MirrorZ-Hecras">GitHub</a>
+    · <a href="../docs/GETTING_STARTED.md">Getting Started</a>
     · <a href="../docs/FORWARD_PLAN.md">Project plan</a>
   </footer>
 
@@ -253,20 +355,19 @@ footer a { text-decoration: underline; text-underline-offset: 3px; }
       if (res.ok) {
         const bytes = res.headers.get("content-length");
         const mb = bytes ? (Number(bytes) / (1024 * 1024)).toFixed(1) + " MB · " : "";
-        status.textContent = mb + "Ready — saves to your Downloads folder from the browser.";
+  status.textContent = mb + "Ready — browser save goes to Downloads; build script also opens the DMG.";
         return;
       }
       throw new Error("missing");
     })
     .catch(function () {
       status.innerHTML =
-        "DMG not on this machine yet. On a Mac from the repo root run " +
-        "<code style='color:#e8f4ef'>bash packaging/build_macos_dmg.sh</code> " +
-        "— it builds the app and copies the DMG into <code style='color:#e8f4ef'>~/Downloads</code> and <code style='color:#e8f4ef'>landing/downloads/</code>.";
-      link.setAttribute("aria-disabled", "true");
+        "DMG not here yet. On <strong>this Mac</strong> from the repo root run " +
+        "<code>bash packaging/build_macos_dmg.sh</code> — always writes " +
+        "<code>~/Downloads/MirrorZ-Hecras-0.5.1.dmg</code>, opens the DMG, then refreshes this page.";
       link.addEventListener("click", function (e) {
         e.preventDefault();
-        status.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        document.querySelector(".steps")?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
 })();

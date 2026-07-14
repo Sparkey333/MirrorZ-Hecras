@@ -3,6 +3,15 @@
 All notable changes to MirrorZ-Hecras. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow SemVer.
 
+## [0.5.1] - 2026-07-14
+
+### Added
+- **Getting Started + Key Sites** in the app (`Help` menu, Companion tab)
+  and landing HTML — numbered local-Mac steps with live URLs
+  (`mirrorz/resources.py`, `docs/GETTING_STARTED.md`).
+- DMG build **always** copies to `~/Downloads`, then **opens the DMG**
+  and `landing/index.html` for an immediate refresh/install loop.
+
 ## [0.5.0] - 2026-07-14
 
 ### Added

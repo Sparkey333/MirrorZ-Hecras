@@ -48,7 +48,17 @@ example trees to the public repo.
 
 ## Key entry points
 
+- `docs/GETTING_STARTED.md` — numbered Mac steps + key site URLs
+- `mirrorz/resources.py` — same steps/URLs for the app Help menu
+- `landing/index.html` — product page with steps + Download CTA
 - `mirrorz/controller.py` — Goodell-style open → compute → output API
 - `docs/automation.md` — book recipe translations
 - `examples/*.json` — MirrorZ project files (human-readable)
 - `main.py` — GUI / CLI / headless / reports
+
+## Mac DMG (always `~/Downloads` for now)
+
+```bash
+bash packaging/build_macos_dmg.sh
+# copies to ~/Downloads, opens the DMG, opens landing/index.html
+```
