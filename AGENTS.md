@@ -19,14 +19,14 @@ rather than empty `main`.
 ## Bootstrap (cloud or local)
 
 ```bash
-sudo apt-get update && sudo apt-get install -y python3-venv python3-tk
-python3 -m venv .venv
+bash scripts/install_dev.sh
 source .venv/bin/activate
-pip install -r requirements.txt
-pip install pytest reportlab   # tests + PDF reports
 pytest -q
-python main.py --run examples/simple_channel.json
+python main.py --run examples/beaver_creek.json
 ```
+
+Equivalent manual steps: `python3-venv` + `python3-tk`, then
+`pip install -r requirements.txt pytest reportlab`.
 
 GUI (needs display / VNC): `python main.py`
 

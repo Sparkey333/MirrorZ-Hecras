@@ -104,9 +104,45 @@ fully capable for scripting and CI. Edition gating (Pro/Classroom) applies
 only to the GUI menu items, which is a storefront decision, not an engine
 limitation. See `mirrorz/report.py`.
 
-## Where this is heading (### TODO ### hooks already in the code)
+## Phase 3 additions (v0.5)
 
-* `Controller.set_boundary(...)` for direct boundary-condition sweeps
-* Geometry mutation helpers (`raise_bed`, `widen_channel`) for
-  what-if studies — the book's Chapter on geometry editing
-* CSV/JSON result export on the controller itself
+### Boundary sweeps
+
+```python
+rc = Controller().open_project("examples/critical_creek.json")
+for wse in (1.2, 1.35, 1.5):
+    rc.set_boundary(wse=wse)
+    rc.compute_current_plan()
+    print(wse, rc.output("CC-160", "wse"))
+```
+
+### Geometry what-ifs
+
+```python
+rc = Controller().open_project("examples/beaver_creek.json")
+rc.raise_bed(0.15)          # aggrade every XS
+rc.widen_channel(1.2)       # widen about section midpoints
+rc.compute_current_plan()
+```
+
+### CSV / JSON export
+
+```python
+rc.compute_current_plan()
+rc.export_results_csv("profile.csv")
+rc.export_results_json("profile.json")
+```
+
+### Monte Carlo Manning's n (RAS Solution recipe)
+
+```python
+pairs = rc.monte_carlo_manning(
+    n_mean=0.032, n_std=0.004, samples=50, node="BC-5")
+ws = [w for _, w in pairs]
+print(min(ws), sum(ws)/len(ws), max(ws))
+```
+
+## Still open
+
+* Mixed-flow / bridge geometry (out of 1D-steady teaching scope for now)
+* Optional Windows COM comparison backend (Phase 5)

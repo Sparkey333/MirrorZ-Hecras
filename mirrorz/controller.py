@@ -52,7 +52,10 @@ HIGHLIGHTED TWEAK AREAS
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+import csv
+import json
+import random
+from typing import Dict, List, Optional, Tuple
 
 from .project import Project, FlowPlan
 from .solver import solve_profile, ProfileResult, SectionResult, \
@@ -154,6 +157,76 @@ class Controller:
             raise ControllerError(f"No node named {node!r} in reach "
                                   f"{reach.name!r}.")
         clear_critical_cache()   # n doesn't change yc, but cheap + safe habit
+
+    # ------------------------------------------------------------------
+    # Boundary + geometry what-ifs  (book-style automation extensions)
+    # ------------------------------------------------------------------
+    def set_boundary(self, wse: Optional[float] = None,
+                     discharge: Optional[float] = None,
+                     regime: Optional[str] = None) -> None:
+        """Update the current plan's boundary condition and/or discharge.
+
+        Mirrors the book's habit of sweeping known downstream WSE or Q
+        without rewriting the project file by hand.
+        """
+        f = self.current_plan
+        if f is None:
+            raise ControllerError("No current plan - open a project first.")
+        if wse is not None:
+            f.boundary_wse = float(wse)
+        if discharge is not None:
+            if float(discharge) <= 0:
+                raise ControllerError("discharge must be > 0")
+            f.discharge = float(discharge)
+        if regime is not None:
+            regime = regime.lower().strip()
+            if regime not in ("subcritical", "supercritical"):
+                raise ControllerError(
+                    "regime must be 'subcritical' or 'supercritical'")
+            f.regime = regime
+        self.last_result = None
+
+    def raise_bed(self, delta: float, reach_index: int = 0,
+                  node: Optional[str] = None) -> None:
+        """Add `delta` to every ground elevation (or one node). Positive
+        raises the bed (aggradation / fill); negative excavates."""
+        reach = self._require_project().reaches[reach_index]
+        hit = False
+        for xs in reach.cross_sections:
+            if node is None or xs.name == node:
+                xs.elevations = [z + float(delta) for z in xs.elevations]
+                hit = True
+        if not hit:
+            raise ControllerError(f"No node named {node!r}.")
+        clear_critical_cache()
+        self.last_result = None
+
+    def widen_channel(self, factor: float = 1.1, reach_index: int = 0,
+                      node: Optional[str] = None) -> None:
+        """Scale transverse stations about the section midpoint.
+
+        `factor` > 1 widens; 0 < factor < 1 narrows. Bank stations scale
+        with the same transform so LOB/channel/ROB panels stay consistent.
+        """
+        if float(factor) <= 0:
+            raise ControllerError("widen factor must be > 0")
+        reach = self._require_project().reaches[reach_index]
+        hit = False
+        for xs in reach.cross_sections:
+            if node is None or xs.name == node:
+                mid = 0.5 * (xs.stations[0] + xs.stations[-1])
+                xs.stations = [
+                    mid + (s - mid) * float(factor) for s in xs.stations
+                ]
+                if xs.left_bank is not None:
+                    xs.left_bank = mid + (xs.left_bank - mid) * float(factor)
+                if xs.right_bank is not None:
+                    xs.right_bank = mid + (xs.right_bank - mid) * float(factor)
+                hit = True
+        if not hit:
+            raise ControllerError(f"No node named {node!r}.")
+        clear_critical_cache()
+        self.last_result = None
 
     # ------------------------------------------------------------------
     # Compute  (Compute_CurrentPlan)
@@ -258,8 +331,95 @@ class Controller:
         return path
 
     # ------------------------------------------------------------------
+    # Result export + Monte Carlo roughness study
+    # ------------------------------------------------------------------
+    def export_results_csv(self, path: str) -> str:
+        """Write the last profile as a CSV table (Goodell workbook style)."""
+        rows = self._result_rows()
+        with open(path, "w", newline="", encoding="utf-8") as fh:
+            writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+            writer.writeheader()
+            writer.writerows(rows)
+        return path
+
+    def export_results_json(self, path: str) -> str:
+        """Write the last profile as JSON (machine-friendly)."""
+        payload = {
+            "project": self._require_project().name,
+            "plan": self.current_plan.name if self.current_plan else None,
+            "discharge": self.current_plan.discharge if self.current_plan else None,
+            "boundary_wse": (
+                self.current_plan.boundary_wse if self.current_plan else None
+            ),
+            "sections": self._result_rows(),
+        }
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2)
+            fh.write("\n")
+        return path
+
+    def monte_carlo_manning(
+        self,
+        n_mean: float = 0.035,
+        n_std: float = 0.005,
+        samples: int = 50,
+        node: str = "XS-5",
+        variable: str = "wse",
+        seed: Optional[int] = 42,
+        reach_index: int = 0,
+    ) -> List[Tuple[float, float]]:
+        """Monte Carlo Manning's n study (RAS Solution / Goodell recipe).
+
+        Draws `samples` channel-n values from a normal distribution, runs
+        the current plan each time, and returns ``[(n, output), ...]``.
+        Restores the original n values afterward.
+        """
+        if samples < 1:
+            raise ControllerError("samples must be >= 1")
+        if n_std < 0:
+            raise ControllerError("n_std must be >= 0")
+        reach = self._require_project().reaches[reach_index]
+        original = [xs.n_channel for xs in reach.cross_sections]
+        rng = random.Random(seed)
+        pairs: List[Tuple[float, float]] = []
+        try:
+            for _ in range(int(samples)):
+                n = max(0.01, rng.gauss(n_mean, n_std))
+                self.set_manning_n(n, reach_index=reach_index)
+                self.compute_current_plan(reach_index=reach_index)
+                pairs.append((n, float(self.output(node, variable))))
+        finally:
+            for xs, n0 in zip(reach.cross_sections, original):
+                xs.n_channel = n0
+            clear_critical_cache()
+        return pairs
+
+    # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
+    def _result_rows(self) -> List[dict]:
+        if self.last_result is None:
+            raise ControllerError(
+                "No results - call compute_current_plan() first.")
+        rows = []
+        for s in self.last_result.sections:
+            rows.append({
+                "name": s.name,
+                "station": s.station,
+                "wse": s.wse,
+                "depth": s.depth,
+                "velocity": s.velocity,
+                "froude": s.froude,
+                "energy_grade": s.energy_grade,
+                "area": s.area,
+                "top_width": s.top_width,
+                "conveyance": s.conveyance,
+                "crit_wse": s.critical_wse,
+                "regime": s.flow_regime,
+                "converged": s.converged,
+            })
+        return rows
+
     def _require_project(self) -> Project:
         if self.project is None:
             raise ControllerError(

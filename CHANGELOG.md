@@ -3,6 +3,26 @@
 All notable changes to MirrorZ-Hecras. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow SemVer.
 
+## [0.5.0] - 2026-07-14
+
+### Added
+- **Controller automation (Phase 3):** `set_boundary`, `raise_bed`,
+  `widen_channel`, `export_results_csv`, `export_results_json`,
+  `monte_carlo_manning` — Goodell / RAS Solution recipes without COM.
+- **Teaching example distills (Phase 2):** `examples/critical_creek.json`,
+  `examples/beaver_creek.json` with docs under `docs/examples/`.
+- **Competitive landscape** (`docs/competitive_landscape.md`) covering
+  HEC-RAS 6.x / RAS 2025, CivilGEO, and creative AI asset tools.
+- **Higgsfield AI prompt pack** (`docs/assets/higgsfield_prompts.md`) for
+  upgrading landing / social assets (plus Flux / Kling / Veo fallbacks).
+- **Landing hero** photoreal river still (`landing/assets/hero-river.png`).
+- **Dev bootstrap** `scripts/install_dev.sh` for Cursor Environments.
+- Tests in `tests/test_controller_v05.py`.
+
+### Changed
+- Landing Download CTA targets `MirrorZ-Hecras-0.5.0.dmg`.
+- Forward plan updated to reflect Phase 2–4 progress.
+
 ## [0.4.0] - 2026-06-13
 
 ### Added
