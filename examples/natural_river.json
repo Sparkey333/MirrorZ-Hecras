@@ -1,0 +1,57 @@
+{
+  "file_version": 1,
+  "name": "Natural Irregular River",
+  "description": "A four-station reach with irregular ground - illustrates how overbanks with a higher n value carry less conveyance than the main channel.",
+  "unit_system": "SI",
+  "reaches": [
+    {
+      "name": "Wiggle Creek",
+      "cross_sections": [
+        {
+          "name": "RS-1000", "river_station": 0.0,
+          "stations":   [0,   20,  40,  50,  60,  70,  90,  120],
+          "elevations": [6.0, 4.5, 2.2, 0.5, 0.4, 2.5, 4.2, 5.8],
+          "left_bank": 40.0, "right_bank": 70.0,
+          "n_channel": 0.033, "n_left": 0.065, "n_right": 0.065,
+          "reach_length_channel": 120.0, "reach_length_lob": 135.0, "reach_length_rob": 130.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        },
+        {
+          "name": "RS-1120", "river_station": 120.0,
+          "stations":   [0,   22,  42,  52,  62,  72,  92,  120],
+          "elevations": [6.3, 4.7, 2.3, 0.6, 0.5, 2.6, 4.3, 6.0],
+          "left_bank": 42.0, "right_bank": 72.0,
+          "n_channel": 0.033, "n_left": 0.065, "n_right": 0.065,
+          "reach_length_channel": 110.0, "reach_length_lob": 125.0, "reach_length_rob": 120.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        },
+        {
+          "name": "RS-1230", "river_station": 230.0,
+          "stations":   [0,   24,  42,  52,  62,  72,  94,  120],
+          "elevations": [6.6, 4.9, 2.5, 0.8, 0.7, 2.8, 4.5, 6.2],
+          "left_bank": 42.0, "right_bank": 72.0,
+          "n_channel": 0.033, "n_left": 0.065, "n_right": 0.065,
+          "reach_length_channel": 115.0, "reach_length_lob": 125.0, "reach_length_rob": 120.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        },
+        {
+          "name": "RS-1345", "river_station": 345.0,
+          "stations":   [0,   25,  43,  53,  63,  73,  95,  120],
+          "elevations": [6.9, 5.1, 2.7, 1.0, 0.9, 3.0, 4.7, 6.5],
+          "left_bank": 43.0, "right_bank": 73.0,
+          "n_channel": 0.033, "n_left": 0.065, "n_right": 0.065,
+          "reach_length_channel": 0.0, "reach_length_lob": 0.0, "reach_length_rob": 0.0,
+          "contraction_coeff": 0.1, "expansion_coeff": 0.3
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "Bankfull flood 80 cms",
+      "discharge": 80.0,
+      "boundary_wse": 2.3,
+      "regime": "subcritical"
+    }
+  ]
+}

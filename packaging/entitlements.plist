@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  packaging/entitlements.plist - macOS hardened-runtime entitlements.
+
+  WHY THESE TWO KEYS?
+  PyInstaller-frozen apps embed CPython, which:
+    1. allocates writable+executable memory pages for ctypes/cffi thunks
+       (-> allow-unsigned-executable-memory), and
+    2. loads .so libraries that were signed by US, not Apple
+       (-> disable-library-validation).
+  Without them a hardened-runtime app crashes at launch with a code-signing
+  kill. These are the standard, Apple-documented exceptions for embedded
+  interpreters - they do NOT disable notarization or the malware scan.
+
+  ### WARN ###: for MAC APP STORE submission you must ALSO add the
+  com.apple.security.app-sandbox entitlement and file-access entitlements
+  (user-selected read-write for the Open/Save dialogs). Direct (DMG)
+  distribution does not require the sandbox. See docs/packaging.md.
+-->
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+</plist>

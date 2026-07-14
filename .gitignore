@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+.build-venv/
+.env
+# PyInstaller outputs
+build/
+dist/
+# Packaged installers staged for the landing page / Releases (too large for git)
+landing/downloads/*.dmg
+landing/downloads/*.dmg.sha256
+landing/downloads/*.zip
+landing/downloads/*.tar.gz
+releases/*.dmg
+releases/*.zip
+releases/*.tar.gz
+releases/*.exe
+# Local reference material (copyrighted PDFs, USACE installers, raw
+# HEC-RAS example trees, etc.) — never commit these to a public repo.
+# Keep the README tracked so agents know the layout.
+docs/reference/**
+!docs/reference/README.md
+.ipynb_checkpoints/
+.mypy_cache/
+.pytest_cache/
+.DS_Store
+*.swp
