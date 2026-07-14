@@ -1,0 +1,14 @@
+MirrorZ-Hecras macOS DMG — build required
+
+This cloud/Linux environment cannot produce a runnable Mac .dmg
+(PyInstaller freezes the host OS; hdiutil is macOS-only).
+
+On your Mac, from the cloned repo:
+  bash packaging/build_macos_dmg.sh
+
+That writes:
+  ~/Downloads/MirrorZ-Hecras-0.4.0.dmg
+  landing/downloads/MirrorZ-Hecras-0.4.0.dmg
+  releases/MirrorZ-Hecras-0.4.0.dmg
+
+Then open landing/index.html — Download for Mac works.

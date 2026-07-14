@@ -46,6 +46,20 @@ See **[`docs/FORWARD_PLAN.md`](docs/FORWARD_PLAN.md)** for how this repo connect
 the local Downloads sync into gitignored `docs/reference/`). Cloud agents: start
 with [`AGENTS.md`](AGENTS.md).
 
+## Landing page + macOS DMG
+
+Open **[`landing/index.html`](landing/index.html)** for the product page with a
+Mac download button. Build the DMG **on a Mac** (cannot cross-compile from Linux):
+
+```bash
+bash packaging/build_macos_dmg.sh
+# → ~/Downloads/MirrorZ-Hecras-<ver>.dmg
+# → landing/downloads/  (linked by the page)
+```
+
+Or run the GitHub Actions workflow `.github/workflows/macos-dmg.yml`.
+Preview locally: `bash packaging/open_landing.sh`
+
 ## Scripting / automation (new in 0.2)
 
 The `Controller` class mirrors the automation workflow popularized by

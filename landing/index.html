@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MirrorZ — open-channel hydraulics you can read</title>
+<meta name="description" content="MirrorZ-Hecras: an educational 1-D steady-flow river model. Download the macOS DMG.">
+<link rel="icon" href="assets/mirrorz_32.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0c1a22;
+  --ink-soft: #243844;
+  --foam: #f3f7f4;
+  --mist: #d7e6df;
+  --river: #0e5f6b;
+  --river-deep: #083943;
+  --sand: #c4a574;
+  --cta: #e8f4ef;
+  --cta-ink: #083943;
+  --shadow: rgba(8, 57, 67, 0.35);
+  --max: 1120px;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  color: var(--foam);
+  font-family: "Source Sans 3", "Segoe UI", sans-serif;
+  background: var(--river-deep);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+
+/* ---------- Hero: one composition, full-bleed product visual ---------- */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  align-content: end;
+  overflow: hidden;
+  isolation: isolate;
+}
+.hero__visual {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(180deg, rgba(8,57,67,0.35) 0%, rgba(8,57,67,0.28) 35%, rgba(8,57,67,0.88) 72%, rgba(6,40,48,0.97) 100%),
+    url("assets/hero-profile.png") center 22% / cover no-repeat,
+    linear-gradient(135deg, #0a4a54 0%, #0e5f6b 40%, #164a3a 100%);
+  transform: scale(1.04);
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.hero__grain {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+@keyframes drift {
+  from { transform: scale(1.04) translate3d(0, 0, 0); }
+  to   { transform: scale(1.08) translate3d(0, -1.2%, 0); }
+}
+.hero__inner {
+  width: min(100% - 2.5rem, var(--max));
+  margin: 0 auto;
+  padding: 0 0 clamp(2.5rem, 7vh, 5rem);
+}
+.brand {
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(3.4rem, 9vw, 6.4rem);
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  margin: 0 0 0.85rem;
+  text-shadow: 0 10px 40px var(--shadow);
+  animation: rise 0.9s cubic-bezier(.2,.7,.2,1) both;
+}
+.brand span {
+  display: block;
+  font-size: 0.28em;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.78;
+  margin-top: 0.55rem;
+}
+.lede {
+  max-width: 34rem;
+  font-size: clamp(1.05rem, 2.1vw, 1.28rem);
+  line-height: 1.45;
+  color: var(--mist);
+  margin: 0 0 1.6rem;
+  animation: rise 0.9s cubic-bezier(.2,.7,.2,1) 0.12s both;
+}
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  animation: rise 0.9s cubic-bezier(.2,.7,.2,1) 0.22s both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+.btn {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.95rem 1.35rem;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn--primary {
+  background: var(--cta);
+  color: var(--cta-ink);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--foam);
+  outline: 1px solid rgba(243,247,244,0.35);
+}
+.btn small {
+  font-weight: 600;
+  opacity: 0.7;
+}
+.meta {
+  margin-top: 0.85rem;
+  font-size: 0.92rem;
+  color: rgba(215,230,223,0.78);
+  min-height: 1.3em;
+}
+
+/* ---------- One-job sections ---------- */
+section {
+  width: min(100% - 2.5rem, var(--max));
+  margin: 0 auto;
+  padding: clamp(3.5rem, 8vh, 6rem) 0;
+}
+section h2 {
+  font-family: Fraunces, Georgia, serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.7rem;
+  color: var(--foam);
+}
+section p {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--mist);
+  font-size: 1.08rem;
+  line-height: 1.55;
+}
+.band {
+  background:
+    radial-gradient(1200px 400px at 10% 0%, rgba(196,165,116,0.12), transparent 60%),
+    linear-gradient(180deg, #0a4550 0%, var(--river-deep) 100%);
+}
+.band--alt {
+  background:
+    linear-gradient(180deg, #072f37 0%, #0a3f48 55%, #083943 100%);
+}
+.split {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: center;
+}
+.split img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 0;
+  /* not a card: no radius/shadow chrome — just the product figure */
+}
+@media (max-width: 780px) {
+  .split { grid-template-columns: 1fr; }
+  .brand { font-size: clamp(2.8rem, 14vw, 4.2rem); }
+}
+
+footer {
+  width: min(100% - 2.5rem, var(--max));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+  color: rgba(215,230,223,0.65);
+  font-size: 0.92rem;
+  border-top: 1px solid rgba(215,230,223,0.12);
+}
+footer a { text-decoration: underline; text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__visual" aria-hidden="true"></div>
+    <div class="hero__grain" aria-hidden="true"></div>
+    <div class="hero__inner">
+      <h1 class="brand">MirrorZ<span>Hecras</span></h1>
+      <p class="lede">Read every step of a 1-D steady water-surface profile — the open educational mirror of HEC-RAS ideas, without the black box.</p>
+      <div class="cta-row">
+        <a class="btn btn--primary" id="download-dmg" href="downloads/MirrorZ-Hecras-0.4.0.dmg">
+          Download for Mac
+          <small>DMG · v0.4.0</small>
+        </a>
+        <a class="btn btn--ghost" href="https://github.com/Sparkey333/MirrorZ-Hecras">View source</a>
+      </div>
+      <p class="meta" id="download-status">Checking for the macOS installer…</p>
+    </div>
+  </header>
+
+  <div class="band">
+    <section class="split">
+      <div>
+        <h2>Compute a profile. Inspect the math.</h2>
+        <p>Cross-sections, Manning conveyance, critical &amp; normal depth, and the standard-step solver — shipped with a companion that explains what just happened.</p>
+      </div>
+      <img src="assets/xs.png" alt="MirrorZ cross-section plot with water surface" width="910" height="532">
+    </section>
+  </div>
+
+  <div class="band--alt">
+    <section>
+      <h2>Automate like the book teaches</h2>
+      <p>A Goodell-style controller — open project, compute plan, read node outputs, sweep roughness or discharge — in plain Python. No Windows COM required.</p>
+    </section>
+  </div>
+
+  <footer>
+    Educational software. Not certified for regulatory floodplain work.
+    · <a href="https://github.com/Sparkey333/MirrorZ-Hecras">GitHub</a>
+    · <a href="../docs/FORWARD_PLAN.md">Project plan</a>
+  </footer>
+
+<script>
+(function () {
+  const link = document.getElementById("download-dmg");
+  const status = document.getElementById("download-status");
+  const href = link.getAttribute("href");
+
+  fetch(href, { method: "HEAD" })
+    .then(function (res) {
+      if (res.ok) {
+        const bytes = res.headers.get("content-length");
+        const mb = bytes ? (Number(bytes) / (1024 * 1024)).toFixed(1) + " MB · " : "";
+        status.textContent = mb + "Ready — saves to your Downloads folder from the browser.";
+        return;
+      }
+      throw new Error("missing");
+    })
+    .catch(function () {
+      status.innerHTML =
+        "DMG not on this machine yet. On a Mac from the repo root run " +
+        "<code style='color:#e8f4ef'>bash packaging/build_macos_dmg.sh</code> " +
+        "— it builds the app and copies the DMG into <code style='color:#e8f4ef'>~/Downloads</code> and <code style='color:#e8f4ef'>landing/downloads/</code>.";
+      link.setAttribute("aria-disabled", "true");
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        status.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    });
+})();
+</script>
+</body>
+</html>

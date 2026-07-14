@@ -113,20 +113,48 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 7. ### TWEAK: DESKTOP_COPY ### - drop the finished DMG on the Desktop and
-#    report its size, plus what to do next.
+# 7. ### TWEAK: DESKTOP_COPY ### - stage the finished DMG for the landing
+#    page, the user's Downloads folder, Desktop, and releases/.
 # ----------------------------------------------------------------------------
-DESKTOP="${HOME}/Desktop"
-if [[ -d "${DESKTOP}" ]]; then
-    cp "${DMG_PATH}" "${DESKTOP}/"
-    FINAL="${DESKTOP}/${DMG_NAME}"
+STAGE_TARGETS=()
+
+LANDING_DL="landing/downloads"
+mkdir -p "${LANDING_DL}" "releases"
+cp "${DMG_PATH}" "${LANDING_DL}/${DMG_NAME}"
+cp "${DMG_PATH}" "releases/${DMG_NAME}"
+STAGE_TARGETS+=("${LANDING_DL}/${DMG_NAME}" "releases/${DMG_NAME}")
+
+# Prefer Downloads (browser-familiar); also keep Desktop for the old habit.
+DOWNLOADS="${HOME}/Downloads"
+if [[ -d "${DOWNLOADS}" ]]; then
+    cp "${DMG_PATH}" "${DOWNLOADS}/${DMG_NAME}"
+    STAGE_TARGETS+=("${DOWNLOADS}/${DMG_NAME}")
+    FINAL="${DOWNLOADS}/${DMG_NAME}"
 else
     FINAL="${DMG_PATH}"
 fi
+
+DESKTOP="${HOME}/Desktop"
+if [[ -d "${DESKTOP}" ]]; then
+    cp "${DMG_PATH}" "${DESKTOP}/${DMG_NAME}"
+    STAGE_TARGETS+=("${DESKTOP}/${DMG_NAME}")
+fi
+
+# Checksum next to the landing download so the page can show integrity.
+(
+  cd "${LANDING_DL}"
+  shasum -a 256 "${DMG_NAME}" > "${DMG_NAME}.sha256"
+)
+
 SIZE_HUMAN="$(du -h "${FINAL}" | cut -f1)"
 
 echo ""
 echo "==> DONE: ${FINAL}  (${SIZE_HUMAN})"
+echo "    Staged copies:"
+for p in "${STAGE_TARGETS[@]}"; do
+    echo "      - ${p}"
+done
+echo "    Landing page: open landing/index.html (Download button → this DMG)"
 if [[ "${SIGN_ID}" == "-" ]]; then
     echo ""
     echo "    NOTE: this is an AD-HOC SIGNED build (no Developer ID)."
